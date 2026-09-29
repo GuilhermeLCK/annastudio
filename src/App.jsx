@@ -4,6 +4,7 @@ import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
 import {
   FLAGS,
+  TAXA_PRE_AGENDAMENTO,
   TURNOS,
   etapas,
   faq,
@@ -222,6 +223,7 @@ const Servicos = ({ onBook }) => (
             <div className="meta__text">
               <span className="meta__label">PAGAMENTO</span>
               <span className="meta__value">Cartão ou Pix</span>
+              <span className="meta__sub">Pré-agendamento: {TAXA_PRE_AGENDAMENTO}</span>
             </div>
           </div>
           <div className="meta">
@@ -408,7 +410,7 @@ const App = () => {
         <Footer onBook={abrir} />
 
         <button type="button" className="fab fab--pulse" aria-label="Agendar pelo WhatsApp" onClick={() => abrir()}>
-          <WhatsIcon color="#C9A46A" />
+          <WhatsIcon size={30} color="#fff" />
         </button>
 
         <BookingModal open={booking.open} servicoInicial={booking.servico} onClose={fechar} />

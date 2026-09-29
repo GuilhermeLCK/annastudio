@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { AGENDA, HORARIOS, TURNOS, WHATSAPP_NUMBER, grupos, servicos } from '../data.js';
+import { AGENDA, HORARIOS, PAGAMENTOS, TAXA_PRE_AGENDAMENTO, TURNOS, WHATSAPP_NUMBER, grupos, servicos } from '../data.js';
 import { useLenis } from '../lenis.jsx';
 
 const fmtSemanaLonga = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
@@ -43,12 +43,16 @@ function horariosDoDia(dia) {
 // Valor especial do campo Horário: a cliente quer saber os horários livres do dia
 const CONSULTAR = 'consultar';
 
-export function montarMensagem({ nome, servico, dia, hora }) {
+// Sem emojis: alguns aparelhos recebem os de 4 bytes quebrados (�) via wa.me
+export function montarMensagem({ nome, servico, dia, hora, pagamento }) {
   const linhas = [
     `Olá, Anna! Meu nome é ${nome.trim()} e gostaria de agendar *${servico.n}* (${servico.p}).`,
     '',
-    `📅 Dia: ${fmtSemanaLonga.format(dia)}, ${pad(dia.getDate())}/${pad(dia.getMonth() + 1)}`,
-    hora === CONSULTAR ? '🕐 Horário: quais horários você tem livres nesse dia?' : `🕐 Horário: ${hora}`,
+    `*Dia:* ${fmtSemanaLonga.format(dia)}, ${pad(dia.getDate())}/${pad(dia.getMonth() + 1)}`,
+    hora === CONSULTAR ? '*Horário:* quais horários você tem livres nesse dia?' : `*Horário:* ${hora}`,
+    `*Pagamento:* ${pagamento}`,
+    '',
+    `Estou ciente da taxa de pré-agendamento de ${TAXA_PRE_AGENDAMENTO}.`,
   ];
   linhas.push('', hora === CONSULTAR ? 'Fico no aguardo. Obrigada!' : 'Fico no aguardo da confirmação. Obrigada!');
   return linhas.join('\n');
@@ -66,6 +70,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
   const [servicoN, setServicoN] = useState('');
   const [diaKey, setDiaKey] = useState('');
   const [hora, setHora] = useState('');
+  const [pagamento, setPagamento] = useState('');
   const [tentou, setTentou] = useState(false);
 
   const dia = mes.celulas.find((c) => c?.disponivel && chaveDoDia(c.d) === diaKey)?.d ?? null;
@@ -120,9 +125,10 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
     servico: !servico ? 'Escolha um procedimento.' : '',
     dia: !dia ? 'Escolha o dia.' : '',
     hora: !hora ? 'Escolha um horário ou peça para consultar a disponibilidade.' : '',
+    pagamento: !pagamento ? 'Escolha a forma de pagamento.' : '',
   };
   const valido = !Object.values(erros).some(Boolean);
-  const mensagem = valido ? montarMensagem({ nome, servico, dia, hora }) : '';
+  const mensagem = valido ? montarMensagem({ nome, servico, dia, hora, pagamento }) : '';
 
   const enviar = (e) => {
     e.preventDefault();
@@ -266,6 +272,26 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
             </label>
             {tentou && erros.hora && <span className="field__error">{erros.hora}</span>}
           </fieldset>
+
+          <fieldset className="field" data-invalid={tentou && !!erros.pagamento}>
+            <legend className="field__label">Forma de pagamento</legend>
+            <div className="chips chips--pay">
+              {PAGAMENTOS.map((p) => (
+                <label key={p} className={`chip ${pagamento === p ? 'is-active' : ''}`}>
+                  <input type="radio" name="pagamento" value={p} checked={pagamento === p} onChange={() => setPagamento(p)} />
+                  {p}
+                </label>
+              ))}
+            </div>
+            {tentou && erros.pagamento && <span className="field__error">{erros.pagamento}</span>}
+          </fieldset>
+
+          <div className="notice">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></svg>
+            <p>
+              <strong>Taxa de pré-agendamento: {TAXA_PRE_AGENDAMENTO}.</strong> O horário é garantido após o pagamento da taxa.
+            </p>
+          </div>
         </div>
 
         <footer className="modal__foot">
