@@ -2,7 +2,7 @@
 export const WHATSAPP_NUMBER = '558585291830';
 
 export const PAGAMENTOS = ['Pix', 'Cartão'];
-export const TAXA_PRE_AGENDAMENTO = 'R$ 50';
+export const TAXA_PRE_AGENDAMENTO = 'R$ 20';
 
 // Agenda (mês atual): dias sem atendimento (0 = domingo), intervalo entre horários e turnos.
 // Os horários vão de 'inicio' até antes de 'fim' (o último começa 'intervaloMin' antes do fim).
@@ -84,7 +84,7 @@ export const faq = [
   { q: 'Preciso ir de algum jeito específico?', a: 'Vá sem maquiagem nos olhos e sem lentes de contato, se possível.' },
   { q: 'Posso molhar os cílios depois?', a: 'Evite molhar nas primeiras 24 horas. Depois disso, vida normal com os cuidados que eu te passo.' },
   { q: 'Serve pra quem nunca fez?', a: 'Sim. A conversa inicial ajuda você a escolher o efeito ideal pro seu primeiro cílio.' },
-  { q: 'Quais as formas de pagamento?', a: 'Cartão e Pix. Para garantir o horário, é cobrada uma taxa de pré-agendamento de R$ 50.' },
+  { q: 'Quais as formas de pagamento?', a: 'Cartão e Pix. Para garantir o horário, é cobrada uma taxa de pré-agendamento de R$ 20.' },
   { q: 'Onde fica o estúdio?', a: 'Travessa Planaltina, 38, Planalto Ayrton Senna, Fortaleza.' },
 ];
 

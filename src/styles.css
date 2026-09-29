@@ -429,10 +429,11 @@ a:has(> .logo) { text-decoration: none; }
 .chip--consult.is-active svg, .chip--consult.is-active small { color: var(--gold-l); }
 .chips--pay { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
 .chips--pay .chip { text-align: center; padding: 12px 0; }
-.notice { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 6px; background: #F4EDE2; border: 1px solid var(--line-2); color: var(--ink-2); }
-.notice svg { flex-shrink: 0; margin-top: 1px; color: var(--gold); }
-.notice p { margin: 0; font-size: 14px; line-height: 1.5; }
-.notice strong { color: var(--ink); font-weight: 500; }
+.notice { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; border-radius: 6px; background: #F4EDE2; border: 1px solid var(--line-2); border-left: 3px solid var(--gold); }
+.notice__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.notice__label { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--bronze); }
+.notice__value { font-family: var(--serif); font-weight: 500; font-size: 26px; line-height: 1; color: var(--ink); white-space: nowrap; }
+.notice p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
 .chips--time .chip { text-align: center; padding: 9px 0; font-size: 14px; }
 .turno { display: flex; flex-direction: column; gap: 8px; }
 .turno + .turno { margin-top: 8px; }

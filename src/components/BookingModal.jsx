@@ -287,10 +287,11 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
           </fieldset>
 
           <div className="notice">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></svg>
-            <p>
-              <strong>Taxa de pré-agendamento: {TAXA_PRE_AGENDAMENTO}.</strong> O horário é garantido após o pagamento da taxa.
-            </p>
+            <div className="notice__head">
+              <span className="notice__label">Taxa de pré-agendamento</span>
+              <span className="notice__value">{TAXA_PRE_AGENDAMENTO}</span>
+            </div>
+            <p>O horário é garantido após o pagamento da taxa.</p>
           </div>
         </div>
 
