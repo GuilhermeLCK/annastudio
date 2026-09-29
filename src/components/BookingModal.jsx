@@ -286,13 +286,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
             {tentou && erros.pagamento && <span className="field__error">{erros.pagamento}</span>}
           </fieldset>
 
-          <div className="notice">
-            <div className="notice__head">
-              <span className="notice__label">Taxa de pré-agendamento</span>
-              <span className="notice__value">{TAXA_PRE_AGENDAMENTO}</span>
-            </div>
-            <p>O horário é garantido após o pagamento da taxa.</p>
-          </div>
+          <p className="obs">Obs.: para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}.</p>
         </div>
 
         <footer className="modal__foot">
