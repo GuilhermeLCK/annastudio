@@ -1,61 +1,105 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { AGENDA, HORARIOS, PAGAMENTOS, TAXA_PRE_AGENDAMENTO, TURNOS, WHATSAPP_NUMBER, grupos, servicos } from '../data.js';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { agendar, buscarHorarios, buscarProcedimentos } from '../api.js';
+import { PAGAMENTOS, TAXA_PRE_AGENDAMENTO, WHATSAPP_NUMBER, grupos } from '../data.js';
 import { useLenis } from '../lenis.jsx';
 
 const fmtSemanaLonga = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
 const fmtMesAno = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
+const fmtMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
-const chaveDoDia = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-const pad = (n) => String(n).padStart(2, '0');
+// A API libera horários até 6 meses à frente; o calendário deixa avançar até 5 meses.
+const MESES_A_FRENTE = 5;
+const MAXIMO_DE_PROCEDIMENTOS = 10;
 
-// Calendário do mês atual: dias passados, fechados ou sem horário ficam indisponíveis
-function montarMes() {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const ano = hoje.getFullYear();
-  const mes = hoje.getMonth();
-  const total = new Date(ano, mes + 1, 0).getDate();
-  const vazios = new Date(ano, mes, 1).getDay();
-  const celulas = Array.from({ length: vazios }, () => null);
-  for (let n = 1; n <= total; n++) {
-    const d = new Date(ano, mes, n);
-    const disponivel = d >= hoje && !AGENDA.diasFechados.includes(d.getDay()) && horariosDoDia(d).length > 0;
-    celulas.push({ d, disponivel, hoje: d.getTime() === hoje.getTime() });
+const pad = (n) => String(n).padStart(2, '0');
+const paraIso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const deIso = (iso) => {
+  const [a, m, d] = iso.split('-').map(Number);
+  return new Date(a, m - 1, d);
+};
+const soDigitos = (texto) => texto.replace(/\D/g, '');
+
+// Máscara de telefone: (85) 98765-4321 (celular) ou (85) 3234-5678 (fixo)
+function mascararTelefone(texto) {
+  const d = soDigitos(texto).slice(0, 11);
+  if (d.length <= 2) return d ? `(${d}` : '';
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+// Mesmas regras da API (quem decide é ela): celular com 11 dígitos começando com 9; fixo com 10 começando com 2 a 5.
+function erroDoTelefone(texto) {
+  const d = soDigitos(texto);
+  if (d.length < 10) return 'Informe o telefone com DDD.';
+  if (d.length === 10 && /[6-9]/.test(d[2])) return 'Celular precisa do 9 na frente, por exemplo (85) 98765-4321.';
+  if (d.length === 11 && d[2] !== '9') return 'Celular começa com 9 depois do DDD.';
+  return '';
+}
+
+// Manhã, tarde e noite a partir da hora "HH:mm"
+function turnoDaHora(hora) {
+  const h = Number(hora.slice(0, 2));
+  if (h < 12) return 'Manhã';
+  if (h < 18) return 'Tarde';
+  return 'Noite';
+}
+
+// Organiza os procedimentos da API nos mesmos grupos da lista de preços do site; o que não estiver lá vai para o fim.
+function agruparProcedimentos(procedimentos) {
+  const normalizar = (t) => t.trim().toLowerCase();
+  const restantes = new Map(procedimentos.map((p) => [normalizar(p.nome), p]));
+  const resultado = [];
+
+  for (const g of grupos) {
+    const itens = g.itens.map((i) => restantes.get(normalizar(i.n))).filter(Boolean);
+    itens.forEach((p) => restantes.delete(normalizar(p.nome)));
+    if (itens.length) resultado.push({ t: g.t, itens });
   }
-  const titulo = fmtMesAno.format(hoje);
+
+  if (restantes.size) {
+    resultado.push({ t: resultado.length ? 'OUTROS PROCEDIMENTOS' : 'PROCEDIMENTOS', itens: [...restantes.values()] });
+  }
+
+  return resultado;
+}
+
+function montarMesDoCalendario(ano, mes, diasLivres) {
+  const hojeIso = paraIso(new Date());
+  const total = new Date(ano, mes, 0).getDate();
+  const vazios = new Date(ano, mes - 1, 1).getDay();
+  const celulas = Array.from({ length: vazios }, () => null);
+
+  for (let n = 1; n <= total; n++) {
+    const iso = `${ano}-${pad(mes)}-${pad(n)}`;
+    celulas.push({ iso, dia: n, d: new Date(ano, mes - 1, n), disponivel: diasLivres.has(iso), hoje: iso === hojeIso });
+  }
+
+  const titulo = fmtMesAno.format(new Date(ano, mes - 1, 1));
   return { titulo: titulo[0].toUpperCase() + titulo.slice(1), celulas };
 }
 
-function horariosDoDia(dia) {
-  if (!dia) return [];
-  const base = HORARIOS;
-  const agora = new Date();
-  if (chaveDoDia(dia) !== chaveDoDia(agora)) return base;
-  // Hoje: só horários com pelo menos 1h de antecedência
-  const limite = agora.getHours() * 60 + agora.getMinutes() + 60;
-  return base.filter((h) => {
-    const [hh, mm] = h.split(':').map(Number);
-    return hh * 60 + mm >= limite;
-  });
+function linkDoWhatsApp(mensagem) {
+  return `https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, '')}?text=${encodeURIComponent(mensagem)}`;
 }
 
-// Valor especial do campo Horário: a cliente quer saber os horários livres do dia
-const CONSULTAR = 'consultar';
+// Sem emojis: alguns aparelhos recebem os de 4 bytes quebrados via wa.me
+export function montarMensagem({ reserva, pagamento }) {
+  const dia = deIso(reserva.data);
+  const nomes = reserva.procedimentos.map((p) => p.nome).join(', ');
 
-// Sem emojis: alguns aparelhos recebem os de 4 bytes quebrados (�) via wa.me
-export function montarMensagem({ nome, servico, dia, hora, pagamento }) {
-  const linhas = [
-    `Olá, Anna! Meu nome é ${nome.trim()} e gostaria de agendar *${servico.n}* (${servico.p}).`,
+  return [
+    `Olá, Anna! Meu nome é ${reserva.nomeCliente} e acabei de reservar pelo site: *${nomes}* (${fmtMoeda.format(reserva.total)}).`,
     '',
     `*Dia:* ${fmtSemanaLonga.format(dia)}, ${pad(dia.getDate())}/${pad(dia.getMonth() + 1)}`,
-    hora === CONSULTAR ? '*Horário:* quais horários você tem livres nesse dia?' : `*Horário:* ${hora}`,
+    `*Horário:* ${reserva.hora}`,
     `*Pagamento:* ${pagamento}`,
     '',
     `Estou ciente da taxa de pré-agendamento de ${TAXA_PRE_AGENDAMENTO}.`,
-  ];
-  linhas.push('', hora === CONSULTAR ? 'Fico no aguardo. Obrigada!' : 'Fico no aguardo da confirmação. Obrigada!');
-  return linhas.join('\n');
+    '',
+    'Fico no aguardo da confirmação. Obrigada!',
+  ].join('\n');
 }
 
 const BookingModal = ({ open, onClose, servicoInicial }) => {
@@ -65,28 +109,75 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
   const nomeRef = useRef(null);
   const lastFocus = useRef(null);
 
-  const mes = useMemo(montarMes, [open]);
+  const hoje = useMemo(() => new Date(), [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [mesVisto, setMesVisto] = useState({ ano: hoje.getFullYear(), mes: hoje.getMonth() + 1 });
+
+  const [procedimentos, setProcedimentos] = useState(null);
+  const [erroDeCarga, setErroDeCarga] = useState('');
+  const [horarios, setHorarios] = useState(null);
+  const [erroDosHorarios, setErroDosHorarios] = useState('');
+
   const [nome, setNome] = useState('');
-  const [servicoN, setServicoN] = useState('');
-  const [diaKey, setDiaKey] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [selecionados, setSelecionados] = useState([]);
+  const [diaIso, setDiaIso] = useState('');
   const [hora, setHora] = useState('');
   const [pagamento, setPagamento] = useState('');
   const [tentou, setTentou] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [erroDoEnvio, setErroDoEnvio] = useState('');
+  const [reserva, setReserva] = useState(null);
 
-  const dia = mes.celulas.find((c) => c?.disponivel && chaveDoDia(c.d) === diaKey)?.d ?? null;
-  const temDiaLivre = mes.celulas.some((c) => c?.disponivel);
-  const horas = horariosDoDia(dia);
-  const servico = servicos.find((s) => s.n === servicoN) ?? null;
-
+  // Ao abrir: volta ao estado inicial e busca os procedimentos
   useEffect(() => {
     if (!open) return;
-    if (servicoInicial) setServicoN(servicoInicial);
+    const agora = new Date();
+    setMesVisto({ ano: agora.getFullYear(), mes: agora.getMonth() + 1 });
+    setNome('');
+    setTelefone('');
+    setSelecionados([]);
+    setDiaIso('');
+    setHora('');
+    setPagamento('');
     setTentou(false);
-  }, [open, servicoInicial]);
+    setErroDoEnvio('');
+    setReserva(null);
+    setErroDeCarga('');
+    setProcedimentos(null);
 
+    let ativo = true;
+    buscarProcedimentos()
+      .then((lista) => ativo && setProcedimentos(lista))
+      .catch((e) => ativo && setErroDeCarga(e.message));
+    return () => {
+      ativo = false;
+    };
+  }, [open]);
+
+  // Procedimento escolhido na lista de preços da página já vem marcado
   useEffect(() => {
-    if (hora && hora !== CONSULTAR && !horas.includes(hora)) setHora('');
-  }, [diaKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!open || !procedimentos || !servicoInicial) return;
+    const achado = procedimentos.find((p) => p.nome.trim().toLowerCase() === servicoInicial.trim().toLowerCase());
+    if (achado) setSelecionados((atuais) => (atuais.includes(achado.id) ? atuais : [...atuais, achado.id]));
+  }, [open, procedimentos, servicoInicial]);
+
+  const carregarHorarios = useCallback(async (ano, mes) => {
+    setErroDosHorarios('');
+    try {
+      const resposta = await buscarHorarios(ano, mes);
+      setHorarios({ ano, mes, dias: new Map(resposta.dias.map((d) => [d.data, d.horas])) });
+    } catch (e) {
+      setHorarios(null);
+      setErroDosHorarios(e.message);
+    }
+  }, []);
+
+  // Horários livres do mês que está na tela
+  useEffect(() => {
+    if (!open) return;
+    setHorarios(null);
+    carregarHorarios(mesVisto.ano, mesVisto.mes);
+  }, [open, mesVisto, carregarHorarios]);
 
   // Trava o scroll da página, gerencia foco e fecha com Esc
   useEffect(() => {
@@ -99,7 +190,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
     const onKey = (e) => {
       if (e.key === 'Escape') onClose();
       if (e.key !== 'Tab' || !panelRef.current) return;
-      const foc = panelRef.current.querySelectorAll('button:not([disabled]), input, [href]');
+      const foc = panelRef.current.querySelectorAll('button:not([disabled]), input:not([disabled]), [href]');
       const first = foc[0];
       const last = foc[foc.length - 1];
       if (e.shiftKey && document.activeElement === first) {
@@ -120,17 +211,44 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
     };
   }, [open, lenis, onClose]);
 
+  const mes = useMemo(
+    () => (horarios ? montarMesDoCalendario(horarios.ano, horarios.mes, new Set(horarios.dias.keys())) : null),
+    [horarios],
+  );
+  const podeVoltar = mesVisto.ano * 12 + mesVisto.mes > hoje.getFullYear() * 12 + hoje.getMonth() + 1;
+  const podeAvancar = mesVisto.ano * 12 + mesVisto.mes < hoje.getFullYear() * 12 + hoje.getMonth() + 1 + MESES_A_FRENTE;
+  const trocarMes = (passo) =>
+    setMesVisto(({ ano, mes: m }) => {
+      const total = ano * 12 + (m - 1) + passo;
+      return { ano: Math.floor(total / 12), mes: (total % 12) + 1 };
+    });
+
+  const horasDoDia = (horarios && diaIso && horarios.dias.get(diaIso)) || [];
+  const turnos = ['Manhã', 'Tarde', 'Noite']
+    .map((t) => ({ t, horas: horasDoDia.filter((h) => turnoDaHora(h) === t) }))
+    .filter((t) => t.horas.length > 0);
+
+  const escolhidos = (procedimentos ?? []).filter((p) => selecionados.includes(p.id));
+  const total = escolhidos.reduce((soma, p) => soma + p.valor, 0);
+  const lista = useMemo(() => agruparProcedimentos(procedimentos ?? []), [procedimentos]);
+
+  const alternarProcedimento = (id) =>
+    setSelecionados((atuais) => {
+      if (atuais.includes(id)) return atuais.filter((x) => x !== id);
+      return atuais.length >= MAXIMO_DE_PROCEDIMENTOS ? atuais : [...atuais, id];
+    });
+
   const erros = {
     nome: nome.trim().length < 2 ? 'Conta pra gente seu nome.' : '',
-    servico: !servico ? 'Escolha um procedimento.' : '',
-    dia: !dia ? 'Escolha o dia.' : '',
-    hora: !hora ? 'Escolha um horário ou peça para consultar a disponibilidade.' : '',
+    telefone: erroDoTelefone(telefone),
+    servico: escolhidos.length === 0 ? 'Escolha ao menos um procedimento.' : '',
+    dia: !diaIso ? 'Escolha o dia.' : '',
+    hora: !hora ? 'Escolha um horário.' : '',
     pagamento: !pagamento ? 'Escolha a forma de pagamento.' : '',
   };
   const valido = !Object.values(erros).some(Boolean);
-  const mensagem = valido ? montarMensagem({ nome, servico, dia, hora, pagamento }) : '';
 
-  const enviar = (e) => {
+  const enviar = async (e) => {
     e.preventDefault();
     setTentou(true);
     if (!valido) {
@@ -138,10 +256,32 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
       primeiro?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    const numero = WHATSAPP_NUMBER.replace(/\D/g, '');
-    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
-    onClose();
+
+    setEnviando(true);
+    setErroDoEnvio('');
+    try {
+      const resposta = await agendar({
+        data: diaIso,
+        hora,
+        procedimentoIds: selecionados,
+        nomeCliente: nome.trim(),
+        telefone: soDigitos(telefone),
+        formaDePagamento: pagamento === 'Cartão' ? 'Cartao' : 'Pix',
+      });
+      setReserva(resposta);
+    } catch (erro) {
+      setErroDoEnvio(erro.message);
+      if (erro.status === 409) {
+        // Alguém reservou esse horário antes: tira a escolha e mostra os horários atualizados
+        setHora('');
+        carregarHorarios(mesVisto.ano, mesVisto.mes);
+      }
+    } finally {
+      setEnviando(false);
+    }
   };
+
+  const semAgenda = Boolean(erroDeCarga);
 
   return (
     <div className={`modal ${open ? 'is-open' : ''}`} aria-hidden={!open}>
@@ -159,142 +299,224 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
         <header className="modal__head">
           <div>
             <div className="eyebrow">AGENDAMENTO</div>
-            <h2 id={titleId} className="modal__title">Reserve seu horário</h2>
+            <h2 id={titleId} className="modal__title">{reserva ? 'Horário reservado' : 'Reserve seu horário'}</h2>
           </div>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Fechar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
         </header>
 
-        <div className="modal__body" data-lenis-prevent>
-          <div className="field" data-invalid={tentou && !!erros.nome}>
-            <label className="field__label" htmlFor="bk-nome">Seu nome</label>
-            <input
-              ref={nomeRef}
-              id="bk-nome"
-              className="input"
-              type="text"
-              autoComplete="given-name"
-              placeholder="Como posso te chamar?"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              maxLength={60}
-            />
-            {tentou && erros.nome && <span className="field__error">{erros.nome}</span>}
-          </div>
-
-          <fieldset className="field" data-invalid={tentou && !!erros.servico}>
-            <legend className="field__label">Procedimento</legend>
-            <div className="svc-list">
-              {grupos.map((g) => (
-                <div key={g.t} className="svc-group">
-                  <div className="svc-group__title">{g.t}</div>
-                  {g.itens.map((s) => (
-                    <label key={s.n} className={`svc ${servicoN === s.n ? 'is-active' : ''}`}>
-                      <input type="radio" name="servico" value={s.n} checked={servicoN === s.n} onChange={() => setServicoN(s.n)} />
-                      <span className="svc__radio" aria-hidden="true" />
-                      <span className="svc__name">{s.n}</span>
-                      <span className="svc__dots" aria-hidden="true" />
-                      <span className="svc__price">{s.p}</span>
-                    </label>
-                  ))}
-                </div>
-              ))}
+        {reserva ? (
+          <>
+            <div className="modal__body" data-lenis-prevent>
+              <p className="done__lead">
+                Pronto, {reserva.nomeCliente.split(' ')[0]}! Seu horário está reservado e <strong>aguarda a confirmação da Anna</strong>.
+              </p>
+              <dl className="done">
+                <div><dt>Dia</dt><dd>{fmtSemanaLonga.format(deIso(reserva.data))}, {deIso(reserva.data).toLocaleDateString('pt-BR')}</dd></div>
+                <div><dt>Horário</dt><dd>{reserva.hora}</dd></div>
+                <div><dt>Procedimentos</dt><dd>{reserva.procedimentos.map((p) => p.nome).join(', ')}</dd></div>
+                <div><dt>Total</dt><dd>{fmtMoeda.format(reserva.total)}</dd></div>
+                <div><dt>Pagamento</dt><dd>{pagamento}</dd></div>
+              </dl>
+              <p className="obs">
+                Para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}. Toque abaixo para avisar a Anna pelo WhatsApp e combinar o pagamento.
+              </p>
             </div>
-            {tentou && erros.servico && <span className="field__error">{erros.servico}</span>}
-          </fieldset>
-
-          <fieldset className="field" data-invalid={tentou && !!erros.dia}>
-            <legend className="field__label">Dia</legend>
-            <div className="cal">
-              <div className="cal__title">{mes.titulo}</div>
-              <div className="cal__grid" role="radiogroup" aria-label={`Dias de ${mes.titulo}`}>
-                {SEMANA.map((s, i) => (
-                  <span key={i} className="cal__wd" aria-hidden="true">{s}</span>
-                ))}
-                {mes.celulas.map((c, i) => {
-                  if (!c) return <span key={`v${i}`} />;
-                  const k = chaveDoDia(c.d);
-                  return (
-                    <label
-                      key={k}
-                      className={`cal__day ${diaKey === k ? 'is-active' : ''} ${c.disponivel ? '' : 'is-disabled'} ${c.hoje ? 'is-today' : ''}`}
-                      title={c.disponivel ? undefined : 'Indisponível'}
-                    >
-                      <input
-                        type="radio"
-                        name="dia"
-                        value={k}
-                        checked={diaKey === k}
-                        disabled={!c.disponivel}
-                        onChange={() => setDiaKey(k)}
-                        aria-label={fmtSemanaLonga.format(c.d) + ', ' + c.d.getDate()}
-                      />
-                      {c.d.getDate()}
-                    </label>
-                  );
-                })}
-              </div>
-              {!temDiaLivre && <p className="field__hint">Não há mais dias livres este mês. Chama no WhatsApp que a gente combina.</p>}
-            </div>
-            {tentou && erros.dia && <span className="field__error">{erros.dia}</span>}
-          </fieldset>
-
-          <fieldset className="field" data-invalid={tentou && !!erros.hora}>
-            <legend className="field__label">Horário</legend>
-            {TURNOS.map((t) => (
-              <div key={t.id} className="turno">
-                <div className="turno__head">
-                  <span className="turno__label">{t.label}</span>
-                  <span className="turno__faixa">{t.inicio.replace(':00', 'h')} às {t.fim.replace(':00', 'h')}</span>
+            <footer className="modal__foot modal__foot--stack">
+              <a className="btn btn--gold btn--block" href={linkDoWhatsApp(montarMensagem({ reserva, pagamento }))} target="_blank" rel="noopener noreferrer">
+                Avisar a Anna no WhatsApp
+              </a>
+              <button type="button" className="btn btn--block btn--ghost" onClick={onClose}>Fechar</button>
+            </footer>
+          </>
+        ) : (
+          <>
+            <div className="modal__body" data-lenis-prevent>
+              {semAgenda ? (
+                <div className="aviso-erro" role="alert">
+                  <p>{erroDeCarga}</p>
+                  <p>Você ainda pode combinar seu horário direto com a Anna pelo WhatsApp.</p>
+                  <a className="btn btn--gold btn--block" href={linkDoWhatsApp('Olá, Anna! Gostaria de agendar um horário.')} target="_blank" rel="noopener noreferrer">
+                    Chamar no WhatsApp
+                  </a>
                 </div>
-                <div className="chips chips--time">
-                  {t.horarios.map((h) => {
-                    const livre = !dia || horas.includes(h);
-                    return (
-                      <label key={h} className={`chip ${hora === h ? 'is-active' : ''} ${livre ? '' : 'is-disabled'}`}>
-                        <input type="radio" name="hora" value={h} checked={hora === h} disabled={!livre} onChange={() => setHora(h)} />
-                        {h}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-            <div className="turno__ou"><span>ou</span></div>
-            <label className={`chip chip--consult ${hora === CONSULTAR ? 'is-active' : ''}`}>
-              <input type="radio" name="hora" value={CONSULTAR} checked={hora === CONSULTAR} onChange={() => setHora(CONSULTAR)} />
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7.5V12l3 2" /></svg>
-              <span>
-                Consultar disponibilidade
-                <small>Anna te responde com os horários livres disponíveis</small>
-              </span>
-            </label>
-            {tentou && erros.hora && <span className="field__error">{erros.hora}</span>}
-          </fieldset>
+              ) : (
+                <>
+                  <div className="field" data-invalid={tentou && !!erros.nome}>
+                    <label className="field__label" htmlFor="bk-nome">Seu nome</label>
+                    <input
+                      ref={nomeRef}
+                      id="bk-nome"
+                      className="input"
+                      type="text"
+                      autoComplete="name"
+                      placeholder="Como posso te chamar?"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      maxLength={150}
+                    />
+                    {tentou && erros.nome && <span className="field__error">{erros.nome}</span>}
+                  </div>
 
-          <fieldset className="field" data-invalid={tentou && !!erros.pagamento}>
-            <legend className="field__label">Forma de pagamento</legend>
-            <div className="chips chips--pay">
-              {PAGAMENTOS.map((p) => (
-                <label key={p} className={`chip ${pagamento === p ? 'is-active' : ''}`}>
-                  <input type="radio" name="pagamento" value={p} checked={pagamento === p} onChange={() => setPagamento(p)} />
-                  {p}
-                </label>
-              ))}
+                  <div className="field" data-invalid={tentou && !!erros.telefone}>
+                    <label className="field__label" htmlFor="bk-telefone">Seu WhatsApp</label>
+                    <input
+                      id="bk-telefone"
+                      className="input"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      placeholder="(85) 98765-4321"
+                      value={telefone}
+                      onChange={(e) => setTelefone(mascararTelefone(e.target.value))}
+                    />
+                    {tentou && erros.telefone && <span className="field__error">{erros.telefone}</span>}
+                  </div>
+
+                  <fieldset className="field" data-invalid={tentou && !!erros.servico}>
+                    <legend className="field__label">
+                      Procedimentos <span className="field__opt">(escolha um ou mais)</span>
+                    </legend>
+                    <div className="svc-list">
+                      {!procedimentos && <p className="field__hint">Carregando procedimentos…</p>}
+                      {lista.map((g) => (
+                        <div key={g.t} className="svc-group">
+                          <div className="svc-group__title">{g.t}</div>
+                          {g.itens.map((p) => {
+                            const marcado = selecionados.includes(p.id);
+                            const travado = !marcado && selecionados.length >= MAXIMO_DE_PROCEDIMENTOS;
+                            return (
+                              <label key={p.id} className={`svc ${marcado ? 'is-active' : ''}`}>
+                                <input type="checkbox" name="servico" value={p.id} checked={marcado} disabled={travado} onChange={() => alternarProcedimento(p.id)} />
+                                <span className="svc__radio svc__radio--box" aria-hidden="true" />
+                                <span className="svc__name">{p.nome}</span>
+                                <span className="svc__dots" aria-hidden="true" />
+                                <span className="svc__price">{fmtMoeda.format(p.valor)}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                    {escolhidos.length > 0 && (
+                      <div className="total">
+                        <span>{escolhidos.length} {escolhidos.length === 1 ? 'procedimento' : 'procedimentos'}</span>
+                        <strong>{fmtMoeda.format(total)}</strong>
+                      </div>
+                    )}
+                    {tentou && erros.servico && <span className="field__error">{erros.servico}</span>}
+                  </fieldset>
+
+                  <fieldset className="field" data-invalid={tentou && !!erros.dia}>
+                    <legend className="field__label">Dia</legend>
+                    <div className="cal">
+                      <div className="cal__head">
+                        <button type="button" className="cal__nav" onClick={() => trocarMes(-1)} disabled={!podeVoltar} aria-label="Mês anterior">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
+                        </button>
+                        <div className="cal__title">{mes ? mes.titulo : fmtMesAno.format(new Date(mesVisto.ano, mesVisto.mes - 1, 1))}</div>
+                        <button type="button" className="cal__nav" onClick={() => trocarMes(1)} disabled={!podeAvancar} aria-label="Próximo mês">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+                        </button>
+                      </div>
+                      {erroDosHorarios ? (
+                        <p className="field__hint">{erroDosHorarios}</p>
+                      ) : !mes ? (
+                        <p className="field__hint">Buscando os horários livres…</p>
+                      ) : (
+                        <div className="cal__grid" role="radiogroup" aria-label={`Dias de ${mes.titulo}`}>
+                          {SEMANA.map((s, i) => (
+                            <span key={i} className="cal__wd" aria-hidden="true">{s}</span>
+                          ))}
+                          {mes.celulas.map((c, i) => {
+                            if (!c) return <span key={`v${i}`} />;
+                            return (
+                              <label
+                                key={c.iso}
+                                className={`cal__day ${diaIso === c.iso ? 'is-active' : ''} ${c.disponivel ? '' : 'is-disabled'} ${c.hoje ? 'is-today' : ''}`}
+                                title={c.disponivel ? undefined : 'Indisponível'}
+                              >
+                                <input
+                                  type="radio"
+                                  name="dia"
+                                  value={c.iso}
+                                  checked={diaIso === c.iso}
+                                  disabled={!c.disponivel}
+                                  onChange={() => {
+                                    setDiaIso(c.iso);
+                                    setHora('');
+                                  }}
+                                  aria-label={fmtSemanaLonga.format(c.d) + ', ' + c.dia}
+                                />
+                                {c.dia}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {mes && mes.celulas.every((c) => !c || !c.disponivel) && (
+                        <p className="field__hint">Sem horários livres neste mês. Veja o próximo mês ou chame a Anna no WhatsApp.</p>
+                      )}
+                    </div>
+                    {tentou && erros.dia && <span className="field__error">{erros.dia}</span>}
+                  </fieldset>
+
+                  <fieldset className="field" data-invalid={tentou && !!erros.hora}>
+                    <legend className="field__label">Horário</legend>
+                    {!diaIso && <p className="field__hint">Escolha um dia para ver os horários livres.</p>}
+                    {turnos.map((t) => (
+                      <div key={t.t} className="turno">
+                        <div className="turno__head">
+                          <span className="turno__label">{t.t}</span>
+                        </div>
+                        <div className="chips chips--time">
+                          {t.horas.map((h) => (
+                            <label key={h} className={`chip ${hora === h ? 'is-active' : ''}`}>
+                              <input type="radio" name="hora" value={h} checked={hora === h} onChange={() => setHora(h)} />
+                              {h}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {tentou && erros.hora && <span className="field__error">{erros.hora}</span>}
+                  </fieldset>
+
+                  <fieldset className="field" data-invalid={tentou && !!erros.pagamento}>
+                    <legend className="field__label">Forma de pagamento</legend>
+                    <div className="chips chips--pay">
+                      {PAGAMENTOS.map((p) => (
+                        <label key={p} className={`chip ${pagamento === p ? 'is-active' : ''}`}>
+                          <input type="radio" name="pagamento" value={p} checked={pagamento === p} onChange={() => setPagamento(p)} />
+                          {p}
+                        </label>
+                      ))}
+                    </div>
+                    {tentou && erros.pagamento && <span className="field__error">{erros.pagamento}</span>}
+                  </fieldset>
+
+                  <p className="obs">Obs.: para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}.</p>
+
+                  {erroDoEnvio && (
+                    <p className="form-error" role="alert">{erroDoEnvio}</p>
+                  )}
+                </>
+              )}
             </div>
-            {tentou && erros.pagamento && <span className="field__error">{erros.pagamento}</span>}
-          </fieldset>
 
-          <p className="obs">Obs.: para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}.</p>
-        </div>
-
-        <footer className="modal__foot">
-          <button type="submit" className="btn btn--dark btn--block">
-            Enviar no WhatsApp
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-          </button>
-        </footer>
+            {!semAgenda && (
+              <footer className="modal__foot">
+                <button type="submit" className="btn btn--dark btn--block" disabled={enviando || !procedimentos}>
+                  {enviando ? 'Reservando…' : 'Reservar meu horário'}
+                  {!enviando && (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  )}
+                </button>
+              </footer>
+            )}
+          </>
+        )}
       </form>
     </div>
   );

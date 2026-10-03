@@ -79,7 +79,7 @@ export const grupos = [
 export const servicos = grupos.flatMap((g) => g.itens.map((s) => ({ ...s, grupo: g.t })));
 
 export const faq = [
-  { q: 'Como faço pra agendar?', a: 'É só tocar em “Agendar”, preencher seu nome, o procedimento, o dia e o melhor horário. A mensagem já vai pronta pro WhatsApp e eu confirmo com você.' },
+  { q: 'Como faço pra agendar?', a: 'É só tocar em “Agendar”, escolher o procedimento, o dia e um horário livre e informar seu nome e WhatsApp. O horário fica reservado na hora e eu confirmo com você pelo WhatsApp.' },
   { q: 'Quanto tempo dura o atendimento?', a: 'De 40 min a 1h30, dependendo da técnica.' },
   { q: 'Preciso ir de algum jeito específico?', a: 'Vá sem maquiagem nos olhos e sem lentes de contato, se possível.' },
   { q: 'Posso molhar os cílios depois?', a: 'Evite molhar nas primeiras 24 horas. Depois disso, vida normal com os cuidados que eu te passo.' },
