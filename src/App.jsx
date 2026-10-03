@@ -209,16 +209,6 @@ const Servicos = ({ onBook }) => {
               <span className="meta__sub">Pré-agendamento: {TAXA_PRE_AGENDAMENTO}</span>
             </div>
           </div>
-          <div className="meta">
-            <svg className="meta__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7.5V12l3 2" />
-            </svg>
-            <div className="meta__text">
-              <span className="meta__label">DURAÇÃO</span>
-              <span className="meta__value">40 min a 1h30</span>
-            </div>
-          </div>
         </div>
       </Reveal>
       <div className="stack-36">
