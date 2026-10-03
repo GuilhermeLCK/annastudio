@@ -1,14 +1,13 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import AgendaDisponivel from './components/AgendaDisponivel.jsx';
 import BookingModal from './components/BookingModal.jsx';
 import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
 import {
   FLAGS,
   TAXA_PRE_AGENDAMENTO,
-  TURNOS,
   etapas,
   faq,
-  galeria,
   grupos,
   inclui,
 } from './data.js';
@@ -162,47 +161,6 @@ const Etapas = () => (
   </section>
 );
 
-const FotoGaleria = ({ t, img }) => {
-  const [falhou, setFalhou] = useState(false);
-  if (falhou || !img) {
-    return (
-      <>
-        <LashMark width={64} color="#C9B28E" className="lash-float" />
-        <span>{t}</span>
-      </>
-    );
-  }
-  return (
-    <figure className="gallery__photo">
-      <img src={img} alt={t} loading="lazy" onError={() => setFalhou(true)} />
-      <figcaption>{t}</figcaption>
-    </figure>
-  );
-};
-
-const Resultados = () => (
-  <section id="resultados" className="section section--sand">
-    <div className="container stack-40">
-      <Reveal className="trust">
-        <span>ATENDIMENTO INDIVIDUAL</span>
-        <span className="gold">•</span>
-        <span>HORA MARCADA</span>
-      </Reveal>
-      <Reveal className="stack-12">
-        <div className="eyebrow">RESULTADOS</div>
-        <h2 className="h2">Olhares feitos aqui</h2>
-      </Reveal>
-      <div className="gallery">
-        {galeria.map((g, i) => (
-          <Reveal key={g.t} className="gallery__item" delay={(i % 3) * 80}>
-            <FotoGaleria {...g} />
-          </Reveal>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
 const Servicos = ({ onBook }) => (
   <section id="servicos" className="section section--dark">
     <div className="container services">
@@ -222,7 +180,7 @@ const Servicos = ({ onBook }) => (
             </svg>
             <div className="meta__text">
               <span className="meta__label">PAGAMENTO</span>
-              <span className="meta__value">Cartão ou Pix</span>
+              <span className="meta__value">Pix, cartão ou dinheiro</span>
               <span className="meta__sub">Pré-agendamento: {TAXA_PRE_AGENDAMENTO}</span>
             </div>
           </div>
@@ -319,12 +277,11 @@ const CtaFinal = ({ onBook }) => (
       <button type="button" className="btn btn--gold btn--lg" style={{ marginTop: 8 }} onClick={() => onBook()}>
         Agendar meu horário no WhatsApp
       </button>
-      <span className="fine">Atendimento individual • Cartão e Pix</span>
+      <span className="fine">Atendimento individual • Pix, cartão e dinheiro</span>
     </Reveal>
   </section>
 );
 
-const faixa = (t) => `${t.inicio.replace(':00', 'h')} às ${t.fim.replace(':00', 'h')}`;
 const ENDERECO = 'Travessa Planaltina, 38, Planalto Ayrton Senna, Fortaleza';
 
 const Footer = ({ onBook }) => {
@@ -352,13 +309,7 @@ const Footer = ({ onBook }) => {
 
         <Reveal className="footer__col" delay={160}>
           <h3 className="footer__title">HORÁRIOS</h3>
-          <ul className="hours">
-            {TURNOS.map((t) => (
-              <li key={t.id}><span>{t.label}</span><span className="hours__dots" /><span>{faixa(t)}</span></li>
-            ))}
-            <li className="hours__off"><span>Domingo</span><span className="hours__dots" /><span>fechado</span></li>
-          </ul>
-          <span className="footer__note">Segunda a sábado, com hora marcada</span>
+          <AgendaDisponivel onBook={onBook} />
         </Reveal>
 
         <Reveal className="footer__col" delay={240}>
@@ -401,7 +352,6 @@ const App = () => {
           <Hero onBook={abrir} />
           <Intro />
           <Etapas />
-          <Resultados />
           <Servicos onBook={abrir} />
           {FLAGS.showGuarantee && <Garantia />}
           <Faq />
