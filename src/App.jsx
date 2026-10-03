@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import AgendaDisponivel from './components/AgendaDisponivel.jsx';
 import BookingModal from './components/BookingModal.jsx';
+import { agruparProcedimentos, formatarPreco, procedimentosDaApi } from './procedimentos.js';
 import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
 import {
@@ -161,7 +162,31 @@ const Etapas = () => (
   </section>
 );
 
-const Servicos = ({ onBook }) => (
+// Lista de preços: os procedimentos ativos do painel; enquanto não chegam (ou se a API falhar), a lista fixa de data.js
+const useListaDePrecos = () => {
+  const [lista, setLista] = useState(null);
+
+  useEffect(() => {
+    let ativo = true;
+    procedimentosDaApi()
+      .then((procedimentos) => {
+        if (ativo && procedimentos.length > 0) {
+          setLista(agruparProcedimentos(procedimentos).map((g) => ({ t: g.t, itens: g.itens.map((p) => ({ n: p.nome, p: formatarPreco(p.valor) })) })));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  return lista ?? grupos;
+};
+
+const Servicos = ({ onBook }) => {
+  const lista = useListaDePrecos();
+
+  return (
   <section id="servicos" className="section section--dark">
     <div className="container services">
       <Reveal className="stack-28">
@@ -197,7 +222,7 @@ const Servicos = ({ onBook }) => (
         </div>
       </Reveal>
       <div className="stack-36">
-        {grupos.map((g, gi) => (
+        {lista.map((g, gi) => (
           <Reveal key={g.t} className="stack-4" delay={gi * 80}>
             <div className="eyebrow eyebrow--gold" style={{ paddingBottom: 10 }}>{g.t}</div>
             {g.itens.map((s) => (
@@ -215,7 +240,8 @@ const Servicos = ({ onBook }) => (
       </div>
     </div>
   </section>
-);
+  );
+};
 
 const Garantia = () => (
   <section className="section section--flush-top">

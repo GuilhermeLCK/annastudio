@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { agendar, buscarHorarios, buscarProcedimentos } from '../api.js';
-import { PAGAMENTOS, TAXA_PRE_AGENDAMENTO, WHATSAPP_NUMBER, grupos } from '../data.js';
+import { agendar, buscarHorarios } from '../api.js';
+import { agruparProcedimentos, procedimentosDaApi } from '../procedimentos.js';
+import { PAGAMENTOS, TAXA_PRE_AGENDAMENTO, WHATSAPP_NUMBER } from '../data.js';
 import { useLenis } from '../lenis.jsx';
 
 const fmtSemanaLonga = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
@@ -44,25 +45,6 @@ function turnoDaHora(hora) {
   if (h < 12) return 'Manhã';
   if (h < 18) return 'Tarde';
   return 'Noite';
-}
-
-// Organiza os procedimentos da API nos mesmos grupos da lista de preços do site; o que não estiver lá vai para o fim.
-function agruparProcedimentos(procedimentos) {
-  const normalizar = (t) => t.trim().toLowerCase();
-  const restantes = new Map(procedimentos.map((p) => [normalizar(p.nome), p]));
-  const resultado = [];
-
-  for (const g of grupos) {
-    const itens = g.itens.map((i) => restantes.get(normalizar(i.n))).filter(Boolean);
-    itens.forEach((p) => restantes.delete(normalizar(p.nome)));
-    if (itens.length) resultado.push({ t: g.t, itens });
-  }
-
-  if (restantes.size) {
-    resultado.push({ t: resultado.length ? 'OUTROS PROCEDIMENTOS' : 'PROCEDIMENTOS', itens: [...restantes.values()] });
-  }
-
-  return resultado;
 }
 
 function montarMesDoCalendario(ano, mes, diasLivres) {
@@ -148,7 +130,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
     setProcedimentos(null);
 
     let ativo = true;
-    buscarProcedimentos()
+    procedimentosDaApi()
       .then((lista) => ativo && setProcedimentos(lista))
       .catch((e) => ativo && setErroDeCarga(e.message));
     return () => {
