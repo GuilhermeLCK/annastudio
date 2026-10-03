@@ -80,6 +80,8 @@ function montarMesDoCalendario(ano, mes, diasLivres) {
   return { titulo: titulo[0].toUpperCase() + titulo.slice(1), celulas };
 }
 
+const rotuloDoPagamento = (valor) => PAGAMENTOS.find((p) => p.valor === valor)?.rotulo ?? valor;
+
 function linkDoWhatsApp(mensagem) {
   return `https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, '')}?text=${encodeURIComponent(mensagem)}`;
 }
@@ -94,7 +96,7 @@ export function montarMensagem({ reserva, pagamento }) {
     '',
     `*Dia:* ${fmtSemanaLonga.format(dia)}, ${pad(dia.getDate())}/${pad(dia.getMonth() + 1)}`,
     `*Horário:* ${reserva.hora}`,
-    `*Pagamento:* ${pagamento}`,
+    `*Pagamento:* ${rotuloDoPagamento(pagamento)}`,
     '',
     `Estou ciente da taxa de pré-agendamento de ${TAXA_PRE_AGENDAMENTO}.`,
     '',
@@ -266,7 +268,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
         procedimentoIds: selecionados,
         nomeCliente: nome.trim(),
         telefone: soDigitos(telefone),
-        formaDePagamento: pagamento === 'Cartão' ? 'Cartao' : 'Pix',
+        formaDePagamento: pagamento,
       });
       setReserva(resposta);
     } catch (erro) {
@@ -317,7 +319,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
                 <div><dt>Horário</dt><dd>{reserva.hora}</dd></div>
                 <div><dt>Procedimentos</dt><dd>{reserva.procedimentos.map((p) => p.nome).join(', ')}</dd></div>
                 <div><dt>Total</dt><dd>{fmtMoeda.format(reserva.total)}</dd></div>
-                <div><dt>Pagamento</dt><dd>{pagamento}</dd></div>
+                <div><dt>Pagamento</dt><dd>{rotuloDoPagamento(pagamento)}</dd></div>
               </dl>
               <p className="obs">
                 Para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}. Toque abaixo para avisar a Anna pelo WhatsApp e combinar o pagamento.
@@ -487,9 +489,9 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
                     <legend className="field__label">Forma de pagamento</legend>
                     <div className="chips chips--pay">
                       {PAGAMENTOS.map((p) => (
-                        <label key={p} className={`chip ${pagamento === p ? 'is-active' : ''}`}>
-                          <input type="radio" name="pagamento" value={p} checked={pagamento === p} onChange={() => setPagamento(p)} />
-                          {p}
+                        <label key={p.valor} className={`chip ${pagamento === p.valor ? 'is-active' : ''}`}>
+                          <input type="radio" name="pagamento" value={p.valor} checked={pagamento === p.valor} onChange={() => setPagamento(p.valor)} />
+                          {p.rotulo}
                         </label>
                       ))}
                     </div>
