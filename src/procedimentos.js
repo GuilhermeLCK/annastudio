@@ -20,7 +20,7 @@ const fmtPreco = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 // "R$ 130", ou "R$ 129,90" quando tem centavos
 export const formatarPreco = (valor) => fmtPreco.format(valor).replace(/\s/g, ' ');
 
-const TITULO_DO_DESTAQUE = 'FAVORITOS DAS CLIENTES';
+const TITULO_DO_DESTAQUE = 'FAVORITOS';
 
 // Tempo cadastrado no painel, em palavras curtas: "45 min", "1h" ou "1h30". Vazio quando não há tempo.
 export function formatarDuracao(minutos) {

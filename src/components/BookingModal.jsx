@@ -97,7 +97,7 @@ export function montarMensagem({ reserva, pagamento }) {
     '',
     `Estou ciente da taxa de pré-agendamento de ${TAXA_PRE_AGENDAMENTO}.`,
     '',
-    'Fico no aguardo da confirmação. Obrigada!',
+    'Fico no aguardo da confirmação. Agradeço desde já.',
   ].join('\n');
 }
 
@@ -105,13 +105,14 @@ export function montarMensagem({ reserva, pagamento }) {
 export function montarMensagemDeEncaixe({ nome, telefone, procedimentos, preferencia, jaEnviado = false }) {
   const linhas = [
     jaEnviado
-      ? `Olá, Anna! Aqui é ${nome}. Acabei de enviar um pedido de encaixe pelo site e queria falar com você.`
-      : `Olá, Anna! Aqui é ${nome}. Não achei um horário que servisse no site e queria pedir um encaixe ou uma nova data.`,
+      ? `Olá, Anna! Aqui é ${nome}. Solicitei um *encaixe* pelo site e queria falar com você.`
+      : `Olá, Anna! Aqui é ${nome}. Não achei um horário que servisse no site e quero solicitar um *encaixe* ou uma nova data.`,
     '',
+    '*Solicitação:* Encaixe',
     `*Procedimentos:* ${procedimentos.join(', ')}`,
   ];
   if (preferencia) linhas.push(`*Preferência:* ${preferencia}`);
-  linhas.push(`*Meu WhatsApp:* ${telefone}`, '', 'Pode ver na sua agenda e me avisar? Obrigada!');
+  linhas.push(`*Meu WhatsApp:* ${telefone}`, '', 'Pode ver na sua agenda e me avisar? Agradeço desde já.');
   return linhas.join('\n');
 }
 
