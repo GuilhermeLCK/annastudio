@@ -169,6 +169,7 @@ a:has(> .logo) { text-decoration: none; }
 }
 .price-row:hover { color: var(--gold-l); padding-left: 8px; }
 .price-row__name { font-family: var(--serif); font-weight: 500; font-size: 24px; line-height: 1.2; }
+.price-row__tempo { font-size: 13px; white-space: nowrap; color: #A8988A; }
 .price-row__dots { flex: 1; min-width: 20px; border-bottom: 1px dotted #5A4A40; transform: translateY(-6px); }
 .price-row__price { font-size: 15px; white-space: nowrap; color: #E6D6C0; }
 
@@ -355,6 +356,7 @@ a:has(> .logo) { text-decoration: none; }
 .svc__radio { width: 18px; height: 18px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--line-2); display: grid; place-items: center; transition: border-color .2s; }
 .svc__radio::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); transform: scale(0); transition: transform .25s var(--ease); }
 .svc__name { font-family: var(--serif); font-weight: 500; font-size: 20px; line-height: 1.2; }
+.svc__tempo { font-size: 12.5px; white-space: nowrap; color: #9A8A7C; }
 .svc__dots { flex: 1; min-width: 12px; border-bottom: 1px dotted var(--line-2); transform: translateY(4px); }
 .svc__price { font-size: 14px; color: var(--bronze); white-space: nowrap; }
 .svc.is-active { background: #F4EDE2; }

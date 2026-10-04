@@ -1,7 +1,8 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import AgendaDisponivel from './components/AgendaDisponivel.jsx';
 import BookingModal from './components/BookingModal.jsx';
-import { agruparProcedimentos, formatarPreco, procedimentosDaApi } from './procedimentos.js';
+import { agruparProcedimentos, faixaDeDuracao, formatarDuracao, formatarPreco } from './procedimentos.js';
+import { useProcedimentos } from './useProcedimentos.js';
 import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
 import {
@@ -141,46 +142,43 @@ const Intro = () => (
   </section>
 );
 
-const Etapas = () => (
-  <section id="como-funciona" className="section">
-    <div className="container stack-56">
-      <Reveal className="center stack-12">
-        <div className="eyebrow">COMO FUNCIONA</div>
-        <h2 className="h2">Olhar sob medida, em 4 etapas</h2>
-      </Reveal>
-      <div className="steps">
-        {etapas.map((e, i) => (
-          <Reveal key={e.n} className="step" delay={i * 90}>
-            <span className="step__n">{e.n}</span>
-            <h3 className="step__t">{e.t}</h3>
-            <p className="body-sm">{e.d}</p>
-          </Reveal>
-        ))}
+// O tempo da aplicação não é escrito à mão: vem do cadastro do painel (do menor ao maior tempo dos procedimentos).
+const Etapas = () => {
+  const procedimentos = useProcedimentos();
+  const faixa = procedimentos ? faixaDeDuracao(procedimentos) : '';
+
+  return (
+    <section id="como-funciona" className="section">
+      <div className="container stack-56">
+        <Reveal className="center stack-12">
+          <div className="eyebrow">COMO FUNCIONA</div>
+          <h2 className="h2">Olhar sob medida, em 4 etapas</h2>
+        </Reveal>
+        <div className="steps">
+          {etapas.map((e, i) => (
+            <Reveal key={e.n} className="step" delay={i * 90}>
+              <span className="step__n">{e.n}</span>
+              <h3 className="step__t">{e.t}</h3>
+              <p className="body-sm">{e.comTempo && faixa ? `${e.d} O tempo depende do procedimento: ${faixa}.` : e.d}</p>
+            </Reveal>
+          ))}
+        </div>
+        <Reveal as="p" className="quote-line">Nada de cílio igual pra todo mundo. O seu é pensado pro seu rosto.</Reveal>
       </div>
-      <Reveal as="p" className="quote-line">Nada de cílio igual pra todo mundo. O seu é pensado pro seu rosto.</Reveal>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
-// Lista de preços: os procedimentos ativos do painel; enquanto não chegam (ou se a API falhar), a lista fixa de data.js
+// Lista de preços: os procedimentos ativos do painel (com o tempo cadastrado de cada um); enquanto não chegam (ou se a API falhar), a lista fixa de data.js
 const useListaDePrecos = () => {
-  const [lista, setLista] = useState(null);
+  const procedimentos = useProcedimentos();
 
-  useEffect(() => {
-    let ativo = true;
-    procedimentosDaApi()
-      .then((procedimentos) => {
-        if (ativo && procedimentos.length > 0) {
-          setLista(agruparProcedimentos(procedimentos).map((g) => ({ t: g.t, itens: g.itens.map((p) => ({ n: p.nome, p: formatarPreco(p.valor) })) })));
-        }
-      })
-      .catch(() => {});
-    return () => {
-      ativo = false;
-    };
-  }, []);
-
-  return lista ?? grupos;
+  return procedimentos
+    ? agruparProcedimentos(procedimentos).map((g) => ({
+        t: g.t,
+        itens: g.itens.map((p) => ({ n: p.nome, p: formatarPreco(p.valor), tempo: formatarDuracao(p.duracaoEmMinutos) })),
+      }))
+    : grupos;
 };
 
 const Servicos = ({ onBook }) => {
@@ -218,6 +216,7 @@ const Servicos = ({ onBook }) => {
             {g.itens.map((s) => (
               <button key={s.n} type="button" className="price-row" onClick={() => onBook(s.n)}>
                 <span className="price-row__name">{s.n}</span>
+                {s.tempo && <span className="price-row__tempo">{s.tempo}</span>}
                 <span className="price-row__dots" />
                 <span className="price-row__price">{s.p}</span>
               </button>
@@ -251,6 +250,10 @@ const Garantia = () => (
 
 const Faq = () => {
   const [aberto, setAberto] = useState(0);
+  const procedimentos = useProcedimentos();
+  const faixa = procedimentos ? faixaDeDuracao(procedimentos) : '';
+  // O tempo da resposta vem do cadastro do painel, nunca de um texto fixo
+  const resposta = (f) => (f.comTempo && faixa ? `Depende do procedimento: ${faixa}. O tempo de cada um aparece na lista de valores e ao agendar.` : f.a);
   return (
     <section id="duvidas" className="section">
       <div className="container container--faq stack-32">
@@ -274,7 +277,7 @@ const Faq = () => {
                   <span className="faq__icon">+</span>
                 </button>
                 <div className="faq__a" id={`faq-${i}`}>
-                  <div><p>{f.a}</p></div>
+                  <div><p>{resposta(f)}</p></div>
                 </div>
               </div>
             );
