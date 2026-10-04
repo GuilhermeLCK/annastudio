@@ -21,6 +21,21 @@ const deIso = (iso) => {
 };
 const soDigitos = (texto) => texto.replace(/\D/g, '');
 
+// "ana lima" -> "Ana Lima": cada palavra começa com maiúscula; da, de, do, das, dos e "e" ficam minúsculas (menos no começo)
+const PARTICULAS = new Set(['da', 'de', 'di', 'do', 'das', 'dos', 'e']);
+export function capitalizarNome(texto) {
+  return texto
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((palavra, i) => {
+      const minuscula = palavra.toLocaleLowerCase('pt-BR');
+      if (i > 0 && PARTICULAS.has(minuscula)) return minuscula;
+      return minuscula.replace(/(^|[-'’])(\p{L})/gu, (_, antes, letra) => antes + letra.toLocaleUpperCase('pt-BR'));
+    })
+    .join(' ');
+}
+
 // Máscara de telefone: (85) 98765-4321 (celular) ou (85) 3234-5678 (fixo)
 function mascararTelefone(texto) {
   const d = soDigitos(texto).slice(0, 11);
@@ -126,6 +141,9 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
   const [enviando, setEnviando] = useState(false);
   const [erroDoEnvio, setErroDoEnvio] = useState('');
   const [reserva, setReserva] = useState(null);
+
+  // O que vai para a API e para a mensagem: sempre com as iniciais em maiúscula
+  const nomeFormatado = capitalizarNome(nome);
 
   // Ao abrir: volta ao estado inicial e busca os procedimentos
   useEffect(() => {
@@ -246,7 +264,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
   const encaixe = modo === 'encaixe';
   const telefoneOk = erroDoTelefone(telefone) === '';
   const erros = {
-    nome: nome.trim().length < 2 ? 'Conta pra gente seu nome.' : '',
+    nome: nomeFormatado.length < 2 ? 'Conta pra gente seu nome.' : '',
     telefone: erroDoTelefone(telefone),
     servico: escolhidos.length === 0 ? 'Escolha ao menos um procedimento.' : '',
     dia: encaixe || diaIso ? '' : 'Escolha o dia.',
@@ -256,7 +274,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
   const valido = !Object.values(erros).some(Boolean);
 
   const mensagemDoEncaixe = montarMensagemDeEncaixe({
-    nome: nome.trim(),
+    nome: nomeFormatado,
     telefone,
     procedimentos: escolhidos.map((p) => p.nome),
     preferencia: preferencia.trim(),
@@ -284,14 +302,14 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
         const nomes = escolhidos.map((p) => p.nome);
         if (apiRecebeEncaixe) {
           await pedirEncaixe({
-            nomeCliente: nome.trim(),
+            nomeCliente: nomeFormatado,
             telefone: soDigitos(telefone),
             procedimentoIds: selecionados,
             preferencia: preferencia.trim(),
           });
-          setPedido({ nomeCliente: nome.trim(), procedimentos: nomes, viaWhatsApp: false });
+          setPedido({ nomeCliente: nomeFormatado, procedimentos: nomes, viaWhatsApp: false });
         } else {
-          setPedido({ nomeCliente: nome.trim(), procedimentos: nomes, viaWhatsApp: true, mensagem: mensagemDoEncaixe });
+          setPedido({ nomeCliente: nomeFormatado, procedimentos: nomes, viaWhatsApp: true, mensagem: mensagemDoEncaixe });
         }
         return;
       }
@@ -300,7 +318,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
         data: diaIso,
         hora,
         procedimentoIds: selecionados,
-        nomeCliente: nome.trim(),
+        nomeCliente: nomeFormatado,
         telefone: soDigitos(telefone),
         formaDePagamento: pagamento,
       });
@@ -445,6 +463,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                       placeholder={telefoneOk ? 'Como posso te chamar?' : 'Informe o WhatsApp primeiro'}
                       value={nome}
                       onChange={(e) => setNome(e.target.value)}
+                      onBlur={() => setNome(capitalizarNome(nome))}
                       maxLength={150}
                       disabled={!telefoneOk}
                     />
