@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { agendar, buscarHorarios, pedirEncaixe } from '../api.js';
 import { agruparProcedimentos, formatarDuracao, procedimentosDaApi } from '../procedimentos.js';
-import { PAGAMENTOS, TAXA_PRE_AGENDAMENTO, WHATSAPP_NUMBER } from '../data.js';
+import { PAGAMENTOS, TAXA_PRE_AGENDAMENTO } from '../data.js';
+import { linkDoWhatsApp, montarMensagem, montarMensagemDeEncaixe } from '../mensagens.js';
 import { useLenis } from '../lenis.jsx';
 
 const fmtSemanaLonga = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
@@ -78,43 +79,6 @@ function montarMesDoCalendario(ano, mes, diasLivres) {
 }
 
 const rotuloDoPagamento = (valor) => PAGAMENTOS.find((p) => p.valor === valor)?.rotulo ?? valor;
-
-function linkDoWhatsApp(mensagem) {
-  return `https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, '')}?text=${encodeURIComponent(mensagem)}`;
-}
-
-// Sem emojis: alguns aparelhos recebem os de 4 bytes quebrados via wa.me
-export function montarMensagem({ reserva, pagamento }) {
-  const dia = deIso(reserva.data);
-  const nomes = reserva.procedimentos.map((p) => p.nome).join(', ');
-
-  return [
-    `Olá, Anna! Meu nome é ${reserva.nomeCliente} e acabei de reservar pelo site: *${nomes}* (${fmtMoeda.format(reserva.total)}).`,
-    '',
-    `*Dia:* ${fmtSemanaLonga.format(dia)}, ${pad(dia.getDate())}/${pad(dia.getMonth() + 1)}`,
-    `*Horário:* ${reserva.hora}`,
-    `*Pagamento:* ${rotuloDoPagamento(pagamento)}`,
-    '',
-    `Estou ciente da taxa de pré-agendamento de ${TAXA_PRE_AGENDAMENTO}.`,
-    '',
-    'Fico no aguardo da confirmação. Agradeço desde já.',
-  ].join('\n');
-}
-
-// Pedido de encaixe mandado pelo WhatsApp, quando o servidor ainda não recebe o pedido pelo site
-export function montarMensagemDeEncaixe({ nome, telefone, procedimentos, preferencia, jaEnviado = false }) {
-  const linhas = [
-    jaEnviado
-      ? `Olá, Anna! Aqui é ${nome}. Solicitei um *encaixe* pelo site e queria falar com você.`
-      : `Olá, Anna! Aqui é ${nome}. Não achei um horário que servisse no site e quero solicitar um *encaixe* ou uma nova data.`,
-    '',
-    '*Solicitação:* Encaixe',
-    `*Procedimentos:* ${procedimentos.join(', ')}`,
-  ];
-  if (preferencia) linhas.push(`*Preferência:* ${preferencia}`);
-  linhas.push(`*Meu WhatsApp:* ${telefone}`, '', 'Pode ver na sua agenda e me avisar? Agradeço desde já.');
-  return linhas.join('\n');
-}
 
 // Procedimentos do resumo, um por linha com o valor, e o total embaixo
 function ListaDoResumo({ itens, total }) {
@@ -301,7 +265,8 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
   const mensagemDoEncaixe = montarMensagemDeEncaixe({
     nome: nomeFormatado,
     telefone,
-    procedimentos: escolhidos.map((p) => p.nome),
+    itens: escolhidos,
+    total,
     preferencia: preferencia.trim(),
   });
   // Depois que o pedido foi enviado pelo site: atalho para a cliente falar direto com a Anna
@@ -309,7 +274,8 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
     ? montarMensagemDeEncaixe({
         nome: pedido.nomeCliente,
         telefone: pedido.telefone,
-        procedimentos: pedido.itens.map((i) => i.nome),
+        itens: pedido.itens,
+        total: pedido.total,
         preferencia: pedido.preferencia,
         jaEnviado: true,
       })
