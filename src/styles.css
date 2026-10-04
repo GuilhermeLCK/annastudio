@@ -463,5 +463,24 @@ a:has(> .logo) { text-decoration: none; }
 
 .input--area { resize: vertical; min-height: 84px; font-family: inherit; line-height: 1.5; }
 .input:disabled { background: var(--sand); cursor: not-allowed; }
-.link-encaixe { align-self: flex-start; padding: 0; border: 0; border-bottom: 1px solid var(--gold); background: none; color: var(--bronze, var(--ink-2)); font: inherit; font-size: 14px; line-height: 1.5; text-align: left; cursor: pointer; }
-.link-encaixe:hover { color: var(--ink); }
+
+/* Agendamento: escolher um horário ou pedir um encaixe */
+.modo { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 99px; background: #fff; }
+.modo__opcao { padding: 11px 10px; border: 0; border-radius: 99px; background: transparent; color: var(--ink-2); font: inherit; font-size: 14px; line-height: 1.2; cursor: pointer; transition: background .25s, color .25s; }
+.modo__opcao:hover { color: var(--ink); }
+.modo__opcao.is-active { background: var(--ink); color: var(--cream); }
+.encaixe-info { margin: 0; padding: 12px 14px; border-left: 2px solid var(--gold); background: #F4EDE2; border-radius: 0 4px 4px 0; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.encaixe-cta { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border: 1px dashed var(--gold); border-radius: 6px; background: #FBF7EF; }
+.encaixe-cta__texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.encaixe-cta__titulo { font-family: var(--serif); font-weight: 500; font-size: 19px; line-height: 1.2; color: var(--ink); }
+.encaixe-cta__sub { font-size: 13px; line-height: 1.45; color: #8A7A6C; }
+.encaixe-cta .btn { flex-shrink: 0; }
+.done dd.done__livre { text-transform: none; }
+@media (max-width: 560px) {
+  .encaixe-cta { flex-direction: column; align-items: stretch; }
+}
+
+/* Chamadas para o agendamento: botão principal e o link do encaixe ao lado */
+.cta-par { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; align-self: flex-start; }
+.link-claro { padding: 0 0 2px; border: 0; border-bottom: 1px solid var(--gold-l); background: none; color: var(--dark-text); font: inherit; font-size: 15px; line-height: 1.4; text-align: left; cursor: pointer; transition: color .2s, border-color .2s; }
+.link-claro:hover { color: var(--gold-xl); border-color: var(--gold-xl); }

@@ -22,7 +22,7 @@ async function buscarProximosDias() {
   return meses.flatMap((m) => m.dias).sort((a, b) => a.data.localeCompare(b.data));
 }
 
-// Rodapé > Horários: uma linha com o próximo horário livre e um botão para escolher (os detalhes ficam no agendamento)
+// Rodapé > Horários: o próximo horário livre, um botão para escolher e outro para pedir um encaixe
 const AgendaDisponivel = ({ onBook }) => {
   const [dias, setDias] = useState(null);
   const [falhou, setFalhou] = useState(false);
@@ -39,20 +39,36 @@ const AgendaDisponivel = ({ onBook }) => {
 
   const proximo = dias?.[0];
 
+  const verHorarios = (
+    <button type="button" className="footer__link footer__link--btn" onClick={() => onBook()}>
+      Ver horários <span aria-hidden="true">→</span>
+    </button>
+  );
+  const pedirEncaixe = (
+    <button type="button" className="footer__link footer__link--btn" onClick={() => onBook('', 'encaixe')}>
+      Pedir um encaixe <span aria-hidden="true">→</span>
+    </button>
+  );
+
   if (falhou) {
     return (
       <>
         <p className="footer__text">Atendimento com hora marcada.</p>
-        <button type="button" className="footer__link footer__link--btn" onClick={() => onBook()}>
-          Ver horários <span aria-hidden="true">→</span>
-        </button>
+        {verHorarios}
       </>
     );
   }
 
   if (!dias) return <p className="footer__text agenda__status">Consultando a agenda…</p>;
 
-  if (!proximo) return <p className="footer__text">Agenda cheia por enquanto. Chame no WhatsApp.</p>;
+  if (!proximo) {
+    return (
+      <>
+        <p className="footer__text">Agenda cheia por enquanto. Peça um encaixe e a Anna te chama no WhatsApp.</p>
+        {pedirEncaixe}
+      </>
+    );
+  }
 
   return (
     <>
@@ -63,9 +79,8 @@ const AgendaDisponivel = ({ onBook }) => {
       <p className="footer__text">
         Próximo horário: {rotuloDoDia(proximo.data)}, {proximo.horas[0]}
       </p>
-      <button type="button" className="footer__link footer__link--btn" onClick={() => onBook()}>
-        Ver horários <span aria-hidden="true">→</span>
-      </button>
+      {verHorarios}
+      {pedirEncaixe}
     </>
   );
 };
