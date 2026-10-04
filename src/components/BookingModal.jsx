@@ -113,6 +113,28 @@ export function montarMensagemDeEncaixe({ nome, telefone, procedimentos, prefere
   return linhas.join('\n');
 }
 
+// Procedimentos do resumo, um por linha com o valor, e o total embaixo
+function ListaDoResumo({ itens, total }) {
+  return (
+    <>
+      <ul className="resumo__lista">
+        {itens.map((i) => (
+          <li key={i.id ?? i.nome}>
+            <span>{i.nome}</span>
+            <span className="resumo__valor">{fmtMoeda.format(i.valor)}</span>
+          </li>
+        ))}
+      </ul>
+      {itens.length > 1 && (
+        <div className="resumo__total">
+          <span>Total</span>
+          <strong>{fmtMoeda.format(total)}</strong>
+        </div>
+      )}
+    </>
+  );
+}
+
 const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }) => {
   const lenis = useLenis();
   const titleId = useId();
@@ -300,6 +322,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
     try {
       if (encaixe) {
         const nomes = escolhidos.map((p) => p.nome);
+        const itens = escolhidos.map((p) => ({ id: p.id, nome: p.nome, valor: p.valor }));
         if (apiRecebeEncaixe) {
           await pedirEncaixe({
             nomeCliente: nomeFormatado,
@@ -307,9 +330,9 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
             procedimentoIds: selecionados,
             preferencia: preferencia.trim(),
           });
-          setPedido({ nomeCliente: nomeFormatado, procedimentos: nomes, viaWhatsApp: false });
+          setPedido({ nomeCliente: nomeFormatado, telefone, itens, total, preferencia: preferencia.trim(), viaWhatsApp: false });
         } else {
-          setPedido({ nomeCliente: nomeFormatado, procedimentos: nomes, viaWhatsApp: true, mensagem: mensagemDoEncaixe });
+          setPedido({ nomeCliente: nomeFormatado, telefone, itens, total, preferencia: preferencia.trim(), viaWhatsApp: true, mensagem: mensagemDoEncaixe });
         }
         return;
       }
@@ -370,10 +393,32 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                   <>Recebido, {pedido.nomeCliente.split(' ')[0]}! A Anna vai ver a agenda e <strong>te chamar no WhatsApp</strong> com uma data para você.</>
                 )}
               </p>
-              <dl className="done">
-                <div><dt>Procedimentos</dt><dd className="done__livre">{pedido.procedimentos.join(', ')}</dd></div>
-                {preferencia.trim() && <div><dt>Preferência</dt><dd className="done__livre">{preferencia.trim()}</dd></div>}
-              </dl>
+              <div className="resumo">
+                <section className="resumo__bloco">
+                  <h3 className="resumo__titulo">Seus dados</h3>
+                  <p className="resumo__nome">{pedido.nomeCliente}</p>
+                  <p className="resumo__sub">{pedido.telefone}</p>
+                </section>
+                <section className="resumo__bloco">
+                  <h3 className="resumo__titulo">{pedido.itens.length === 1 ? 'Procedimento' : 'Procedimentos'}</h3>
+                  <ListaDoResumo itens={pedido.itens} total={pedido.total} />
+                </section>
+                <section className="resumo__bloco">
+                  <h3 className="resumo__titulo">Quando você prefere</h3>
+                  <p className={pedido.preferencia ? 'resumo__nome' : 'resumo__sub'}>{pedido.preferencia || 'Sem preferência, a Anna sugere uma data.'}</p>
+                </section>
+              </div>
+              <ol className="passos">
+                {(pedido.viaWhatsApp
+                  ? ['Toque em Enviar pelo WhatsApp.', 'A Anna vê a agenda.', 'Ela responde com uma data para você.']
+                  : ['A Anna vê a agenda.', 'Ela te chama no WhatsApp com uma data.', 'Você confirma e o horário fica reservado.']
+                ).map((texto, i) => (
+                  <li key={texto}>
+                    <span className="passos__n">{i + 1}</span>
+                    {texto}
+                  </li>
+                ))}
+              </ol>
               <p className="obs">Seu horário ainda não está reservado: a Anna responde assim que encontrar uma data.</p>
             </div>
             <footer className="modal__foot modal__foot--stack">
@@ -392,12 +437,16 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                 Pronto, {reserva.nomeCliente.split(' ')[0]}! Seu horário está reservado e <strong>aguarda a confirmação da Anna</strong>.
               </p>
               <dl className="done">
-                <div><dt>Dia</dt><dd>{fmtSemanaLonga.format(deIso(reserva.data))}, {deIso(reserva.data).toLocaleDateString('pt-BR')}</dd></div>
+                <div><dt>Dia</dt><dd className="done__livre">{fmtSemanaLonga.format(deIso(reserva.data)).replace(/^./, (l) => l.toUpperCase())}, {deIso(reserva.data).toLocaleDateString('pt-BR')}</dd></div>
                 <div><dt>Horário</dt><dd>{reserva.hora}</dd></div>
-                <div><dt>Procedimentos</dt><dd className="done__livre">{reserva.procedimentos.map((p) => p.nome).join(', ')}</dd></div>
-                <div><dt>Total</dt><dd>{fmtMoeda.format(reserva.total)}</dd></div>
                 <div><dt>Pagamento</dt><dd>{rotuloDoPagamento(pagamento)}</dd></div>
               </dl>
+              <div className="resumo">
+                <section className="resumo__bloco">
+                  <h3 className="resumo__titulo">{reserva.procedimentos.length === 1 ? 'Procedimento' : 'Procedimentos'}</h3>
+                  <ListaDoResumo itens={reserva.procedimentos} total={reserva.total} />
+                </section>
+              </div>
               <p className="obs">
                 Para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}. Toque abaixo para avisar a Anna pelo WhatsApp e combinar o pagamento.
               </p>

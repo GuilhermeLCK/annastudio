@@ -484,3 +484,19 @@ a:has(> .logo) { text-decoration: none; }
 .cta-par { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; align-self: flex-start; }
 .link-claro { padding: 0 0 2px; border: 0; border-bottom: 1px solid var(--gold-l); background: none; color: var(--dark-text); font: inherit; font-size: 15px; line-height: 1.4; text-align: left; cursor: pointer; transition: color .2s, border-color .2s; }
 .link-claro:hover { color: var(--gold-xl); border-color: var(--gold-xl); }
+
+/* Resumo depois do pedido de encaixe e da reserva */
+.resumo { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+.resumo__bloco { padding: 14px 16px; }
+.resumo__bloco + .resumo__bloco { border-top: 1px solid var(--line); }
+.resumo__titulo { margin: 0 0 8px; font-size: 11px; font-weight: 400; letter-spacing: .25em; text-transform: uppercase; color: var(--bronze); }
+.resumo__nome { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 20px; line-height: 1.3; overflow-wrap: anywhere; }
+.resumo__sub { margin: 2px 0 0; font-size: 14px; line-height: 1.5; color: #8A7A6C; }
+.resumo__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.resumo__lista li { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; font-family: var(--serif); font-weight: 500; font-size: 19px; line-height: 1.3; }
+.resumo__valor { flex-shrink: 0; font-family: var(--sans); font-weight: 400; font-size: 14px; color: var(--bronze); }
+.resumo__total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; padding-top: 10px; border-top: 1px dotted var(--line-2); font-size: 14px; color: var(--ink-2); }
+.resumo__total strong { font-family: var(--serif); font-weight: 500; font-size: 22px; color: var(--ink); }
+.passos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.4; color: var(--ink-2); }
+.passos li { display: flex; align-items: center; gap: 12px; }
+.passos__n { width: 24px; height: 24px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--gold); font-size: 12px; color: var(--bronze); }
