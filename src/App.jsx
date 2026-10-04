@@ -178,7 +178,7 @@ const useListaDePrecos = () => {
         t: g.t,
         itens: g.itens.map((p) => ({ n: p.nome, p: formatarPreco(p.valor), tempo: formatarDuracao(p.duracaoEmMinutos) })),
       }))
-    : grupos;
+    : [{ t: 'PROCEDIMENTOS', itens: grupos.flatMap((g) => g.itens) }];
 };
 
 const Servicos = ({ onBook }) => {
