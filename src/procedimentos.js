@@ -21,13 +21,30 @@ const fmtPreco = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 // "R$ 130", ou "R$ 129,90" quando tem centavos
 export const formatarPreco = (valor) => fmtPreco.format(valor).replace(/\s/g, ' ');
 
+const TITULO_DO_DESTAQUE = 'DESTAQUES DA CASA';
+
 // Organiza os procedimentos da API nos grupos da lista de preços do site (pelo nome); o que não estiver lá vai para o fim.
+// Quando a API informa o destaque (os mais feitos pelo estúdio), o grupo "Destaques da casa" vem dela; sem esse dado
+// (API antiga ou sem atendimentos ainda), vale a lista fixa do site.
 export function agruparProcedimentos(procedimentos) {
   const normalizar = (t) => t.trim().toLowerCase();
+  const apiInformaDestaque = procedimentos.some((p) => typeof p.destaque === 'boolean');
   const restantes = new Map(procedimentos.map((p) => [normalizar(p.nome), p]));
   const resultado = [];
 
-  for (const g of grupos) {
+  let base = grupos;
+  if (apiInformaDestaque) {
+    const destaques = procedimentos.filter((p) => p.destaque);
+    destaques.forEach((p) => restantes.delete(normalizar(p.nome)));
+    if (destaques.length) resultado.push({ t: TITULO_DO_DESTAQUE, itens: destaques });
+
+    // Os itens do grupo fixo de destaque passam a ser técnicas comuns (ficam no início do grupo seguinte)
+    const fixo = grupos.find((g) => g.t === TITULO_DO_DESTAQUE);
+    const demais = grupos.filter((g) => g !== fixo);
+    base = fixo && demais.length ? [{ ...demais[0], itens: [...fixo.itens, ...demais[0].itens] }, ...demais.slice(1)] : demais;
+  }
+
+  for (const g of base) {
     const itens = g.itens.map((i) => restantes.get(normalizar(i.n))).filter(Boolean);
     itens.forEach((p) => restantes.delete(normalizar(p.nome)));
     if (itens.length) resultado.push({ t: g.t, itens });
