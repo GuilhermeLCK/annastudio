@@ -20,7 +20,7 @@ const fmtPreco = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 // "R$ 130", ou "R$ 129,90" quando tem centavos
 export const formatarPreco = (valor) => fmtPreco.format(valor).replace(/\s/g, ' ');
 
-const TITULO_DO_DESTAQUE = 'DESTAQUES DA CASA';
+const TITULO_DO_DESTAQUE = 'FAVORITOS DAS CLIENTES';
 
 // Tempo cadastrado no painel, em palavras curtas: "45 min", "1h" ou "1h30". Vazio quando não há tempo.
 export function formatarDuracao(minutos) {
@@ -40,7 +40,7 @@ export function faixaDeDuracao(procedimentos) {
   return menor === maior ? formatarDuracao(menor) : `de ${formatarDuracao(menor)} a ${formatarDuracao(maior)}`;
 }
 
-// Organiza os procedimentos da API para a lista de preços e para a escolha no agendamento: só o destaque da casa fica
+// Organiza os procedimentos da API para a lista de preços e para a escolha no agendamento: só os favoritos ficam
 // separado (quando a API o informa); todo o resto vem numa lista única, na ordem da API.
 export function agruparProcedimentos(procedimentos) {
   const destaques = procedimentos.filter((p) => p.destaque === true);
