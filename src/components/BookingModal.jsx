@@ -228,7 +228,9 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
       return atuais.length >= MAXIMO_DE_PROCEDIMENTOS ? atuais : [...atuais, id];
     });
 
-  const encaixe = modo === 'encaixe';
+  // O pedido de encaixe só aparece quando a API já o oferece (a mesma versão que informa o destaque dos procedimentos)
+  const apiOfereceEncaixe = Boolean(procedimentos?.some((p) => typeof p.destaque === 'boolean'));
+  const encaixe = modo === 'encaixe' && apiOfereceEncaixe;
   const telefoneOk = erroDoTelefone(telefone) === '';
   const erros = {
     nome: nome.trim().length < 2 ? 'Conta pra gente seu nome.' : '',
@@ -484,7 +486,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
                             </div>
                           )}
                           {mes && mes.celulas.every((c) => !c || !c.disponivel) && (
-                            <p className="field__hint">Sem horários livres neste mês. Veja o próximo mês ou peça um encaixe abaixo.</p>
+                            <p className="field__hint">Sem horários livres neste mês. Veja o próximo mês{apiOfereceEncaixe ? ' ou peça um encaixe abaixo' : ' ou chame a Anna no WhatsApp'}.</p>
                           )}
                         </div>
                         {tentou && erros.dia && <span className="field__error">{erros.dia}</span>}
@@ -525,9 +527,11 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
                       </fieldset>
 
 
-                      <button type="button" className="link-encaixe" onClick={() => alternarModo('encaixe')}>
-                        Não achou um horário bom? Peça um encaixe ou uma nova data
-                      </button>
+                      {apiOfereceEncaixe && (
+                        <button type="button" className="link-encaixe" onClick={() => alternarModo('encaixe')}>
+                          Não achou um horário bom? Peça um encaixe ou uma nova data
+                        </button>
+                      )}
 
                       <p className="obs">Obs.: para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}.</p>
                     </>
