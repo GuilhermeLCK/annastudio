@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { agendar, buscarHorarios } from '../api.js';
+import { agendar, buscarHorarios, pedirEncaixe } from '../api.js';
 import { agruparProcedimentos, procedimentosDaApi } from '../procedimentos.js';
 import { PAGAMENTOS, TAXA_PRE_AGENDAMENTO, WHATSAPP_NUMBER } from '../data.js';
 import { useLenis } from '../lenis.jsx';
@@ -90,7 +90,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
   const lenis = useLenis();
   const titleId = useId();
   const panelRef = useRef(null);
-  const nomeRef = useRef(null);
+  const telefoneRef = useRef(null);
   const lastFocus = useRef(null);
 
   const hoje = useMemo(() => new Date(), [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -107,6 +107,9 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
   const [diaIso, setDiaIso] = useState('');
   const [hora, setHora] = useState('');
   const [pagamento, setPagamento] = useState('');
+  const [preferencia, setPreferencia] = useState('');
+  const [modo, setModo] = useState('horario'); // 'horario' (escolhe dia e hora) ou 'encaixe' (pede uma data)
+  const [pedido, setPedido] = useState(null);
   const [tentou, setTentou] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erroDoEnvio, setErroDoEnvio] = useState('');
@@ -123,6 +126,9 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
     setDiaIso('');
     setHora('');
     setPagamento('');
+    setPreferencia('');
+    setModo('horario');
+    setPedido(null);
     setTentou(false);
     setErroDoEnvio('');
     setReserva(null);
@@ -169,7 +175,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
     lastFocus.current = document.activeElement;
     lenis?.stop();
     document.documentElement.classList.add('modal-open');
-    const t = setTimeout(() => nomeRef.current?.focus(), 60);
+    const t = setTimeout(() => telefoneRef.current?.focus(), 60);
 
     const onKey = (e) => {
       if (e.key === 'Escape') onClose();
@@ -222,15 +228,23 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
       return atuais.length >= MAXIMO_DE_PROCEDIMENTOS ? atuais : [...atuais, id];
     });
 
+  const encaixe = modo === 'encaixe';
+  const telefoneOk = erroDoTelefone(telefone) === '';
   const erros = {
     nome: nome.trim().length < 2 ? 'Conta pra gente seu nome.' : '',
     telefone: erroDoTelefone(telefone),
     servico: escolhidos.length === 0 ? 'Escolha ao menos um procedimento.' : '',
-    dia: !diaIso ? 'Escolha o dia.' : '',
-    hora: !hora ? 'Escolha um horário.' : '',
-    pagamento: !pagamento ? 'Escolha a forma de pagamento.' : '',
+    dia: encaixe || diaIso ? '' : 'Escolha o dia.',
+    hora: encaixe || hora ? '' : 'Escolha um horário.',
+    pagamento: encaixe || pagamento ? '' : 'Escolha a forma de pagamento.',
   };
   const valido = !Object.values(erros).some(Boolean);
+
+  const alternarModo = (novo) => {
+    setModo(novo);
+    setTentou(false);
+    setErroDoEnvio('');
+  };
 
   const enviar = async (e) => {
     e.preventDefault();
@@ -244,6 +258,17 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
     setEnviando(true);
     setErroDoEnvio('');
     try {
+      if (encaixe) {
+        await pedirEncaixe({
+          nomeCliente: nome.trim(),
+          telefone: soDigitos(telefone),
+          procedimentoIds: selecionados,
+          preferencia: preferencia.trim(),
+        });
+        setPedido({ nomeCliente: nome.trim(), procedimentos: escolhidos.map((p) => p.nome) });
+        return;
+      }
+
       const resposta = await agendar({
         data: diaIso,
         hora,
@@ -283,14 +308,30 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
         <header className="modal__head">
           <div>
             <div className="eyebrow">AGENDAMENTO</div>
-            <h2 id={titleId} className="modal__title">{reserva ? 'Horário reservado' : 'Reserve seu horário'}</h2>
+            <h2 id={titleId} className="modal__title">{reserva ? 'Horário reservado' : pedido ? 'Pedido enviado' : encaixe ? 'Peça um encaixe' : 'Reserve seu horário'}</h2>
           </div>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Fechar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
         </header>
 
-        {reserva ? (
+        {pedido ? (
+          <>
+            <div className="modal__body" data-lenis-prevent>
+              <p className="done__lead">
+                Recebido, {pedido.nomeCliente.split(' ')[0]}! A Anna vai ver a agenda e <strong>te chamar no WhatsApp</strong> com uma data para você.
+              </p>
+              <dl className="done">
+                <div><dt>Procedimentos</dt><dd>{pedido.procedimentos.join(', ')}</dd></div>
+                {preferencia.trim() && <div><dt>Preferência</dt><dd>{preferencia.trim()}</dd></div>}
+              </dl>
+              <p className="obs">Seu horário ainda não está reservado: a Anna responde assim que encontrar uma data.</p>
+            </div>
+            <footer className="modal__foot modal__foot--stack">
+              <button type="button" className="btn btn--block btn--ghost" onClick={onClose}>Fechar</button>
+            </footer>
+          </>
+        ) : reserva ? (
           <>
             <div className="modal__body" data-lenis-prevent>
               <p className="done__lead">
@@ -327,25 +368,10 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
                 </div>
               ) : (
                 <>
-                  <div className="field" data-invalid={tentou && !!erros.nome}>
-                    <label className="field__label" htmlFor="bk-nome">Seu nome</label>
-                    <input
-                      ref={nomeRef}
-                      id="bk-nome"
-                      className="input"
-                      type="text"
-                      autoComplete="name"
-                      placeholder="Como posso te chamar?"
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      maxLength={150}
-                    />
-                    {tentou && erros.nome && <span className="field__error">{erros.nome}</span>}
-                  </div>
-
                   <div className="field" data-invalid={tentou && !!erros.telefone}>
                     <label className="field__label" htmlFor="bk-telefone">Seu WhatsApp</label>
                     <input
+                      ref={telefoneRef}
                       id="bk-telefone"
                       className="input"
                       type="tel"
@@ -356,6 +382,22 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
                       onChange={(e) => setTelefone(mascararTelefone(e.target.value))}
                     />
                     {tentou && erros.telefone && <span className="field__error">{erros.telefone}</span>}
+                  </div>
+
+                  <div className="field" data-invalid={tentou && !!erros.nome}>
+                    <label className="field__label" htmlFor="bk-nome">Seu nome</label>
+                    <input
+                      id="bk-nome"
+                      className="input"
+                      type="text"
+                      autoComplete="name"
+                      placeholder={telefoneOk ? 'Como posso te chamar?' : 'Informe o WhatsApp primeiro'}
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      maxLength={150}
+                      disabled={!telefoneOk}
+                    />
+                    {tentou && erros.nome && telefoneOk && <span className="field__error">{erros.nome}</span>}
                   </div>
 
                   <fieldset className="field" data-invalid={tentou && !!erros.servico}>
@@ -392,95 +434,127 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
                     {tentou && erros.servico && <span className="field__error">{erros.servico}</span>}
                   </fieldset>
 
-                  <fieldset className="field" data-invalid={tentou && !!erros.dia}>
-                    <legend className="field__label">Dia</legend>
-                    <div className="cal">
-                      <div className="cal__head">
-                        <button type="button" className="cal__nav" onClick={() => trocarMes(-1)} disabled={!podeVoltar} aria-label="Mês anterior">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
-                        </button>
-                        <div className="cal__title">{mes ? mes.titulo : fmtMesAno.format(new Date(mesVisto.ano, mesVisto.mes - 1, 1))}</div>
-                        <button type="button" className="cal__nav" onClick={() => trocarMes(1)} disabled={!podeAvancar} aria-label="Próximo mês">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-                        </button>
-                      </div>
-                      {erroDosHorarios ? (
-                        <p className="field__hint">{erroDosHorarios}</p>
-                      ) : !mes ? (
-                        <p className="field__hint">Buscando os horários livres…</p>
-                      ) : (
-                        <div className="cal__grid" role="radiogroup" aria-label={`Dias de ${mes.titulo}`}>
-                          {SEMANA.map((s, i) => (
-                            <span key={i} className="cal__wd" aria-hidden="true">{s}</span>
-                          ))}
-                          {mes.celulas.map((c, i) => {
-                            if (!c) return <span key={`v${i}`} />;
-                            return (
-                              <label
-                                key={c.iso}
-                                className={`cal__day ${diaIso === c.iso ? 'is-active' : ''} ${c.disponivel ? '' : 'is-disabled'} ${c.hoje ? 'is-today' : ''}`}
-                                title={c.disponivel ? undefined : 'Indisponível'}
-                              >
-                                <input
-                                  type="radio"
-                                  name="dia"
-                                  value={c.iso}
-                                  checked={diaIso === c.iso}
-                                  disabled={!c.disponivel}
-                                  onChange={() => {
-                                    setDiaIso(c.iso);
-                                    setHora('');
-                                  }}
-                                  aria-label={fmtSemanaLonga.format(c.d) + ', ' + c.dia}
-                                />
-                                {c.dia}
-                              </label>
-                            );
-                          })}
+                  {!encaixe && (
+                    <>
+                      <fieldset className="field" data-invalid={tentou && !!erros.dia}>
+                        <legend className="field__label">Dia</legend>
+                        <div className="cal">
+                          <div className="cal__head">
+                            <button type="button" className="cal__nav" onClick={() => trocarMes(-1)} disabled={!podeVoltar} aria-label="Mês anterior">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
+                            </button>
+                            <div className="cal__title">{mes ? mes.titulo : fmtMesAno.format(new Date(mesVisto.ano, mesVisto.mes - 1, 1))}</div>
+                            <button type="button" className="cal__nav" onClick={() => trocarMes(1)} disabled={!podeAvancar} aria-label="Próximo mês">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+                            </button>
+                          </div>
+                          {erroDosHorarios ? (
+                            <p className="field__hint">{erroDosHorarios}</p>
+                          ) : !mes ? (
+                            <p className="field__hint">Buscando os horários livres…</p>
+                          ) : (
+                            <div className="cal__grid" role="radiogroup" aria-label={`Dias de ${mes.titulo}`}>
+                              {SEMANA.map((s, i) => (
+                                <span key={i} className="cal__wd" aria-hidden="true">{s}</span>
+                              ))}
+                              {mes.celulas.map((c, i) => {
+                                if (!c) return <span key={`v${i}`} />;
+                                return (
+                                  <label
+                                    key={c.iso}
+                                    className={`cal__day ${diaIso === c.iso ? 'is-active' : ''} ${c.disponivel ? '' : 'is-disabled'} ${c.hoje ? 'is-today' : ''}`}
+                                    title={c.disponivel ? undefined : 'Indisponível'}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="dia"
+                                      value={c.iso}
+                                      checked={diaIso === c.iso}
+                                      disabled={!c.disponivel}
+                                      onChange={() => {
+                                        setDiaIso(c.iso);
+                                        setHora('');
+                                      }}
+                                      aria-label={fmtSemanaLonga.format(c.d) + ', ' + c.dia}
+                                    />
+                                    {c.dia}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {mes && mes.celulas.every((c) => !c || !c.disponivel) && (
+                            <p className="field__hint">Sem horários livres neste mês. Veja o próximo mês ou peça um encaixe abaixo.</p>
+                          )}
                         </div>
-                      )}
-                      {mes && mes.celulas.every((c) => !c || !c.disponivel) && (
-                        <p className="field__hint">Sem horários livres neste mês. Veja o próximo mês ou chame a Anna no WhatsApp.</p>
-                      )}
-                    </div>
-                    {tentou && erros.dia && <span className="field__error">{erros.dia}</span>}
-                  </fieldset>
+                        {tentou && erros.dia && <span className="field__error">{erros.dia}</span>}
+                      </fieldset>
 
-                  <fieldset className="field" data-invalid={tentou && !!erros.hora}>
-                    <legend className="field__label">Horário</legend>
-                    {!diaIso && <p className="field__hint">Escolha um dia para ver os horários livres.</p>}
-                    {turnos.map((t) => (
-                      <div key={t.t} className="turno">
-                        <div className="turno__head">
-                          <span className="turno__label">{t.t}</span>
-                        </div>
-                        <div className="chips chips--time">
-                          {t.horas.map((h) => (
-                            <label key={h} className={`chip ${hora === h ? 'is-active' : ''}`}>
-                              <input type="radio" name="hora" value={h} checked={hora === h} onChange={() => setHora(h)} />
-                              {h}
+                      <fieldset className="field" data-invalid={tentou && !!erros.hora}>
+                        <legend className="field__label">Horário</legend>
+                        {!diaIso && <p className="field__hint">Escolha um dia para ver os horários livres.</p>}
+                        {turnos.map((t) => (
+                          <div key={t.t} className="turno">
+                            <div className="turno__head">
+                              <span className="turno__label">{t.t}</span>
+                            </div>
+                            <div className="chips chips--time">
+                              {t.horas.map((h) => (
+                                <label key={h} className={`chip ${hora === h ? 'is-active' : ''}`}>
+                                  <input type="radio" name="hora" value={h} checked={hora === h} onChange={() => setHora(h)} />
+                                  {h}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        {tentou && erros.hora && <span className="field__error">{erros.hora}</span>}
+                      </fieldset>
+
+                      <fieldset className="field" data-invalid={tentou && !!erros.pagamento}>
+                        <legend className="field__label">Forma de pagamento</legend>
+                        <div className="chips chips--pay">
+                          {PAGAMENTOS.map((p) => (
+                            <label key={p.valor} className={`chip ${pagamento === p.valor ? 'is-active' : ''}`}>
+                              <input type="radio" name="pagamento" value={p.valor} checked={pagamento === p.valor} onChange={() => setPagamento(p.valor)} />
+                              {p.rotulo}
                             </label>
                           ))}
                         </div>
-                      </div>
-                    ))}
-                    {tentou && erros.hora && <span className="field__error">{erros.hora}</span>}
-                  </fieldset>
+                        {tentou && erros.pagamento && <span className="field__error">{erros.pagamento}</span>}
+                      </fieldset>
 
-                  <fieldset className="field" data-invalid={tentou && !!erros.pagamento}>
-                    <legend className="field__label">Forma de pagamento</legend>
-                    <div className="chips chips--pay">
-                      {PAGAMENTOS.map((p) => (
-                        <label key={p.valor} className={`chip ${pagamento === p.valor ? 'is-active' : ''}`}>
-                          <input type="radio" name="pagamento" value={p.valor} checked={pagamento === p.valor} onChange={() => setPagamento(p.valor)} />
-                          {p.rotulo}
+
+                      <button type="button" className="link-encaixe" onClick={() => alternarModo('encaixe')}>
+                        Não achou um horário bom? Peça um encaixe ou uma nova data
+                      </button>
+
+                      <p className="obs">Obs.: para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}.</p>
+                    </>
+                  )}
+
+                  {encaixe && (
+                    <>
+                      <div className="field">
+                        <label className="field__label" htmlFor="bk-preferencia">
+                          Quando você prefere? <span className="field__opt">(opcional)</span>
                         </label>
-                      ))}
-                    </div>
-                    {tentou && erros.pagamento && <span className="field__error">{erros.pagamento}</span>}
-                  </fieldset>
-
-                  <p className="obs">Obs.: para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}.</p>
+                        <textarea
+                          id="bk-preferencia"
+                          className="input input--area"
+                          rows={3}
+                          maxLength={300}
+                          placeholder="Ex.: sábado de manhã, ou qualquer dia depois das 14h"
+                          value={preferencia}
+                          onChange={(e) => setPreferencia(e.target.value)}
+                        />
+                      </div>
+                      <p className="obs">Sem escolher dia nem horário: a Anna vê a agenda, tenta um encaixe e te chama no WhatsApp. O horário só fica reservado quando ela confirmar.</p>
+                      <button type="button" className="link-encaixe" onClick={() => alternarModo('horario')}>
+                        Voltar e escolher um horário
+                      </button>
+                    </>
+                  )}
 
                   {erroDoEnvio && (
                     <p className="form-error" role="alert">{erroDoEnvio}</p>
@@ -492,7 +566,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
             {!semAgenda && (
               <footer className="modal__foot">
                 <button type="submit" className="btn btn--dark btn--block" disabled={enviando || !procedimentos}>
-                  {enviando ? 'Reservando…' : 'Reservar meu horário'}
+                  {enviando ? (encaixe ? 'Enviando…' : 'Reservando…') : encaixe ? 'Pedir encaixe' : 'Reservar meu horário'}
                   {!enviando && (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                   )}

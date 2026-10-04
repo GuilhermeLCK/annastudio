@@ -48,3 +48,11 @@ export const agendar = (dados) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(dados),
   });
+
+/** POST /api/site/solicitacoes: pedido de encaixe ou de nova data, quando a cliente não achou horário. */
+export const pedirEncaixe = (dados) =>
+  chamar('/api/site/solicitacoes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(dados),
+  });
