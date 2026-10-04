@@ -1,5 +1,4 @@
 import { buscarProcedimentos } from './api.js';
-import { grupos } from './data.js';
 
 const VALIDADE_MS = 60_000;
 let cache = null; // { promessa, quando }
@@ -41,36 +40,15 @@ export function faixaDeDuracao(procedimentos) {
   return menor === maior ? formatarDuracao(menor) : `de ${formatarDuracao(menor)} a ${formatarDuracao(maior)}`;
 }
 
-// Organiza os procedimentos da API nos grupos da lista de preços do site (pelo nome); o que não estiver lá vai para o fim.
-// Quando a API informa o destaque (os mais feitos pelo estúdio), o grupo "Destaques da casa" vem dela; sem esse dado
-// (API antiga ou sem atendimentos ainda), vale a lista fixa do site.
+// Organiza os procedimentos da API para a lista de preços e para a escolha no agendamento: só o destaque da casa fica
+// separado (quando a API o informa); todo o resto vem numa lista única, na ordem da API.
 export function agruparProcedimentos(procedimentos) {
-  const normalizar = (t) => t.trim().toLowerCase();
-  const apiInformaDestaque = procedimentos.some((p) => typeof p.destaque === 'boolean');
-  const restantes = new Map(procedimentos.map((p) => [normalizar(p.nome), p]));
+  const destaques = procedimentos.filter((p) => p.destaque === true);
+  const demais = procedimentos.filter((p) => p.destaque !== true);
   const resultado = [];
 
-  let base = grupos;
-  if (apiInformaDestaque) {
-    const destaques = procedimentos.filter((p) => p.destaque);
-    destaques.forEach((p) => restantes.delete(normalizar(p.nome)));
-    if (destaques.length) resultado.push({ t: TITULO_DO_DESTAQUE, itens: destaques });
-
-    // Os itens do grupo fixo de destaque passam a ser técnicas comuns (ficam no início do grupo seguinte)
-    const fixo = grupos.find((g) => g.t === TITULO_DO_DESTAQUE);
-    const demais = grupos.filter((g) => g !== fixo);
-    base = fixo && demais.length ? [{ ...demais[0], itens: [...fixo.itens, ...demais[0].itens] }, ...demais.slice(1)] : demais;
-  }
-
-  for (const g of base) {
-    const itens = g.itens.map((i) => restantes.get(normalizar(i.n))).filter(Boolean);
-    itens.forEach((p) => restantes.delete(normalizar(p.nome)));
-    if (itens.length) resultado.push({ t: g.t, itens });
-  }
-
-  if (restantes.size) {
-    resultado.push({ t: resultado.length ? 'OUTROS PROCEDIMENTOS' : 'PROCEDIMENTOS', itens: [...restantes.values()] });
-  }
+  if (destaques.length) resultado.push({ t: TITULO_DO_DESTAQUE, itens: destaques });
+  if (demais.length) resultado.push({ t: destaques.length ? 'OUTROS PROCEDIMENTOS' : 'PROCEDIMENTOS', itens: demais });
 
   return resultado;
 }
