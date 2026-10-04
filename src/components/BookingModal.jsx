@@ -102,9 +102,11 @@ export function montarMensagem({ reserva, pagamento }) {
 }
 
 // Pedido de encaixe mandado pelo WhatsApp, quando o servidor ainda não recebe o pedido pelo site
-export function montarMensagemDeEncaixe({ nome, telefone, procedimentos, preferencia }) {
+export function montarMensagemDeEncaixe({ nome, telefone, procedimentos, preferencia, jaEnviado = false }) {
   const linhas = [
-    `Olá, Anna! Aqui é ${nome}. Não achei um horário que servisse no site e queria pedir um encaixe ou uma nova data.`,
+    jaEnviado
+      ? `Olá, Anna! Aqui é ${nome}. Acabei de enviar um pedido de encaixe pelo site e queria falar com você.`
+      : `Olá, Anna! Aqui é ${nome}. Não achei um horário que servisse no site e queria pedir um encaixe ou uma nova data.`,
     '',
     `*Procedimentos:* ${procedimentos.join(', ')}`,
   ];
@@ -301,6 +303,16 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
     procedimentos: escolhidos.map((p) => p.nome),
     preferencia: preferencia.trim(),
   });
+  // Depois que o pedido foi enviado pelo site: atalho para a cliente falar direto com a Anna
+  const mensagemParaFalar = pedido
+    ? montarMensagemDeEncaixe({
+        nome: pedido.nomeCliente,
+        telefone: pedido.telefone,
+        procedimentos: pedido.itens.map((i) => i.nome),
+        preferencia: pedido.preferencia,
+        jaEnviado: true,
+      })
+    : '';
 
   const alternarModo = (novo) => {
     setModo(novo);
@@ -422,9 +434,13 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
               <p className="obs">Seu horário ainda não está reservado: a Anna responde assim que encontrar uma data.</p>
             </div>
             <footer className="modal__foot modal__foot--stack">
-              {pedido.viaWhatsApp && (
+              {pedido.viaWhatsApp ? (
                 <a className="btn btn--gold btn--block" href={linkDoWhatsApp(pedido.mensagem)} target="_blank" rel="noopener noreferrer">
                   Enviar pelo WhatsApp
+                </a>
+              ) : (
+                <a className="btn btn--gold btn--block" href={linkDoWhatsApp(mensagemParaFalar)} target="_blank" rel="noopener noreferrer">
+                  Falar com a Anna no WhatsApp
                 </a>
               )}
               <button type="button" className="btn btn--block btn--ghost" onClick={onClose}>Fechar</button>
