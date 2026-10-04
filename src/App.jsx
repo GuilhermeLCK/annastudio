@@ -223,9 +223,14 @@ const Servicos = ({ onBook }) => {
             ))}
           </Reveal>
         ))}
-        <button type="button" className="btn btn--gold btn--lg" style={{ alignSelf: 'flex-start' }} onClick={() => onBook()}>
-          Escolher meu horário
-        </button>
+        <div className="cta-par">
+          <button type="button" className="btn btn--gold btn--lg" onClick={() => onBook()}>
+            Escolher meu horário
+          </button>
+          <button type="button" className="link-claro" onClick={() => onBook('', 'encaixe')}>
+            Sem horário bom? Peça um encaixe
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -358,8 +363,9 @@ const Footer = ({ onBook }) => {
 };
 
 const App = () => {
-  const [booking, setBooking] = useState({ open: false, servico: '' });
-  const abrir = useCallback((servico = '') => setBooking({ open: true, servico }), []);
+  const [booking, setBooking] = useState({ open: false, servico: '', modo: 'horario' });
+  // modo: 'horario' (escolhe dia e hora) ou 'encaixe' (a cliente pede uma data quando nenhum horário serviu)
+  const abrir = useCallback((servico = '', modo = 'horario') => setBooking({ open: true, servico, modo }), []);
   const fechar = useCallback(() => setBooking((b) => ({ ...b, open: false })), []);
 
   return (
@@ -382,7 +388,7 @@ const App = () => {
           <WhatsIcon size={30} color="#fff" />
         </button>
 
-        <BookingModal open={booking.open} servicoInicial={booking.servico} onClose={fechar} />
+        <BookingModal open={booking.open} servicoInicial={booking.servico} modoInicial={booking.modo} onClose={fechar} />
       </div>
     </LenisProvider>
   );
