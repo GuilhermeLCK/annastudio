@@ -25,7 +25,7 @@ export const inclui = [
 
 export const grupos = [
   {
-    t: 'DESTAQUES DA CASA',
+    t: 'FAVORITOS DAS CLIENTES',
     itens: [
       { n: 'Volume Brasileiro', p: 'R$ 130' },
       { n: 'Volume Egípcio', p: 'R$ 150' },
