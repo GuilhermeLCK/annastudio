@@ -12,7 +12,7 @@ export const TAXA_PRE_AGENDAMENTO = 'R$ 20';
 export const etapas = [
   { n: '01', t: 'Conversa', d: 'Entendo sua rotina e o efeito que você imagina: mais natural ou mais marcante.' },
   { n: '02', t: 'Mapeamento do olhar', d: 'Analiso o formato dos seus olhos e a espessura dos seus fios pra escolher técnica, curvatura e tamanho ideais.' },
-  { n: '03', t: 'Aplicação', d: 'Você fica deitada, de olhos fechados, em um ambiente tranquilo. De 40 min a 1h30.' },
+  { n: '03', t: 'Aplicação', d: 'Você fica deitada, de olhos fechados, em um ambiente tranquilo.', comTempo: true },
   { n: '04', t: 'Cuidados', d: 'Você sai com orientações de manutenção pra seus cílios durarem mais.' },
 ];
 
@@ -52,7 +52,7 @@ export const servicos = grupos.flatMap((g) => g.itens.map((s) => ({ ...s, grupo:
 
 export const faq = [
   { q: 'Como faço pra agendar?', a: 'É só tocar em “Agendar”, escolher o procedimento, o dia e um horário livre e informar seu nome e WhatsApp. O horário fica reservado na hora e eu confirmo com você pelo WhatsApp.' },
-  { q: 'Quanto tempo dura o atendimento?', a: 'De 40 min a 1h30, dependendo da técnica.' },
+  { q: 'Quanto tempo dura o atendimento?', a: 'Depende do procedimento escolhido.', comTempo: true },
   { q: 'Preciso ir de algum jeito específico?', a: 'Vá sem maquiagem nos olhos e sem lentes de contato, se possível.' },
   { q: 'Posso molhar os cílios depois?', a: 'Evite molhar nas primeiras 24 horas. Depois disso, vida normal com os cuidados que eu te passo.' },
   { q: 'Serve pra quem nunca fez?', a: 'Sim. A conversa inicial ajuda você a escolher o efeito ideal pro seu primeiro cílio.' },

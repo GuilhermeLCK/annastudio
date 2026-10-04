@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { agendar, buscarHorarios, pedirEncaixe } from '../api.js';
-import { agruparProcedimentos, procedimentosDaApi } from '../procedimentos.js';
+import { agruparProcedimentos, formatarDuracao, procedimentosDaApi } from '../procedimentos.js';
 import { PAGAMENTOS, TAXA_PRE_AGENDAMENTO, WHATSAPP_NUMBER } from '../data.js';
 import { useLenis } from '../lenis.jsx';
 
@@ -419,6 +419,7 @@ const BookingModal = ({ open, onClose, servicoInicial }) => {
                                 <input type="checkbox" name="servico" value={p.id} checked={marcado} disabled={travado} onChange={() => alternarProcedimento(p.id)} />
                                 <span className="svc__radio svc__radio--box" aria-hidden="true" />
                                 <span className="svc__name">{p.nome}</span>
+                                {p.duracaoEmMinutos > 0 && <span className="svc__tempo">{formatarDuracao(p.duracaoEmMinutos)}</span>}
                                 <span className="svc__dots" aria-hidden="true" />
                                 <span className="svc__price">{fmtMoeda.format(p.valor)}</span>
                               </label>

@@ -23,6 +23,24 @@ export const formatarPreco = (valor) => fmtPreco.format(valor).replace(/\s/g, ' 
 
 const TITULO_DO_DESTAQUE = 'DESTAQUES DA CASA';
 
+// Tempo cadastrado no painel, em palavras curtas: "45 min", "1h" ou "1h30". Vazio quando não há tempo.
+export function formatarDuracao(minutos) {
+  if (!Number.isFinite(minutos) || minutos <= 0) return '';
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  if (horas === 0) return `${resto} min`;
+  return resto === 0 ? `${horas}h` : `${horas}h${String(resto).padStart(2, '0')}`;
+}
+
+// Do menor ao maior tempo cadastrado: "de 30 min a 1h30" (ou só "1h30" se todos forem iguais). Vazio sem procedimentos.
+export function faixaDeDuracao(procedimentos) {
+  const minutos = procedimentos.map((p) => p.duracaoEmMinutos).filter((m) => Number.isFinite(m) && m > 0);
+  if (minutos.length === 0) return '';
+  const menor = Math.min(...minutos);
+  const maior = Math.max(...minutos);
+  return menor === maior ? formatarDuracao(menor) : `de ${formatarDuracao(menor)} a ${formatarDuracao(maior)}`;
+}
+
 // Organiza os procedimentos da API nos grupos da lista de preços do site (pelo nome); o que não estiver lá vai para o fim.
 // Quando a API informa o destaque (os mais feitos pelo estúdio), o grupo "Destaques da casa" vem dela; sem esse dado
 // (API antiga ou sem atendimentos ainda), vale a lista fixa do site.
