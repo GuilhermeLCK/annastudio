@@ -23,33 +23,6 @@ export const inclui = [
   'Orientações de cuidado pós aplicação',
 ];
 
-export const grupos = [
-  {
-    t: 'FAVORITOS',
-    itens: [
-      { n: 'Volume Brasileiro', p: 'R$ 130' },
-      { n: 'Volume Egípcio', p: 'R$ 150' },
-    ],
-  },
-  {
-    t: 'OUTRAS TÉCNICAS',
-    itens: [
-      { n: 'Fio a Fio', p: 'R$ 120' },
-      { n: 'Volume Russo', p: 'R$ 170' },
-      { n: 'Lash Lifting', p: 'R$ 100' },
-    ],
-  },
-  {
-    t: 'MANUTENÇÃO E CUIDADOS',
-    itens: [
-      { n: 'Manutenção (até 20 dias)', p: 'a partir de R$ 80' },
-      { n: 'Remoção', p: 'R$ 40' },
-    ],
-  },
-];
-
-export const servicos = grupos.flatMap((g) => g.itens.map((s) => ({ ...s, grupo: g.t })));
-
 export const faq = [
   { q: 'Como faço pra agendar?', a: 'É só tocar em “Agendar”, escolher o procedimento, o dia e um horário livre e informar seu nome e WhatsApp. O horário fica reservado na hora e eu confirmo com você pelo WhatsApp.' },
   { q: 'Não achei um horário bom, e agora?', a: 'Toque em “Agendar” e escolha “Pedir encaixe”. Você diz o procedimento e quando prefere, eu vejo a agenda e te chamo no WhatsApp com uma data.' },

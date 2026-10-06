@@ -10,7 +10,6 @@ import {
   TAXA_PRE_AGENDAMENTO,
   etapas,
   faq,
-  grupos,
   inclui,
 } from './data.js';
 import { LenisProvider, useLenis } from './lenis.jsx';
@@ -144,8 +143,8 @@ const Intro = () => (
 
 // O tempo da aplicação não é escrito à mão: vem do cadastro do painel (do menor ao maior tempo dos procedimentos).
 const Etapas = () => {
-  const procedimentos = useProcedimentos();
-  const faixa = procedimentos ? faixaDeDuracao(procedimentos) : '';
+  const { lista } = useProcedimentos();
+  const faixa = lista ? faixaDeDuracao(lista) : '';
 
   return (
     <section id="como-funciona" className="section">
@@ -169,20 +168,22 @@ const Etapas = () => {
   );
 };
 
-// Lista de preços: os procedimentos ativos do painel (com o tempo cadastrado de cada um); enquanto não chegam (ou se a API falhar), a lista fixa de data.js
+// Lista de preços: só os procedimentos ativos do painel (com o tempo cadastrado de cada um), nunca uma lista fixa.
+// Enquanto carrega, avisa; se a API falhar ou não houver nenhum, diz que não há procedimento disponível.
 const useListaDePrecos = () => {
-  const procedimentos = useProcedimentos();
-
-  return procedimentos
-    ? agruparProcedimentos(procedimentos).map((g) => ({
+  const { estado, lista, tentarDeNovo } = useProcedimentos();
+  const grupos = (lista ?? []).length
+    ? agruparProcedimentos(lista).map((g) => ({
         t: g.t,
         itens: g.itens.map((p) => ({ n: p.nome, p: formatarPreco(p.valor), tempo: formatarDuracao(p.duracaoEmMinutos) })),
       }))
-    : [{ t: 'PROCEDIMENTOS', itens: grupos.flatMap((g) => g.itens) }];
+    : [];
+
+  return { estado, grupos, tentarDeNovo };
 };
 
 const Servicos = ({ onBook }) => {
-  const lista = useListaDePrecos();
+  const { estado, grupos: lista, tentarDeNovo } = useListaDePrecos();
 
   return (
   <section id="servicos" className="section section--dark">
@@ -210,6 +211,17 @@ const Servicos = ({ onBook }) => {
         </div>
       </Reveal>
       <div className="stack-36">
+        {estado === 'carregando' && <p className="muted-dark" role="status">Carregando os procedimentos…</p>}
+        {estado !== 'carregando' && lista.length === 0 && (
+          <div className="stack-14" role="status">
+            <p className="muted-dark">Nenhum procedimento disponível no momento.</p>
+            {estado === 'erro' && (
+              <button type="button" className="link-claro" style={{ alignSelf: 'flex-start' }} onClick={tentarDeNovo}>
+                Tentar de novo
+              </button>
+            )}
+          </div>
+        )}
         {lista.map((g, gi) => (
           <Reveal key={g.t} className="stack-4" delay={gi * 80}>
             <div className="eyebrow eyebrow--gold" style={{ paddingBottom: 10 }}>{g.t}</div>
@@ -255,8 +267,8 @@ const Garantia = () => (
 
 const Faq = () => {
   const [aberto, setAberto] = useState(0);
-  const procedimentos = useProcedimentos();
-  const faixa = procedimentos ? faixaDeDuracao(procedimentos) : '';
+  const { lista } = useProcedimentos();
+  const faixa = lista ? faixaDeDuracao(lista) : '';
   // O tempo da resposta vem do cadastro do painel, nunca de um texto fixo
   const resposta = (f) => (f.comTempo && faixa ? `Depende do procedimento: ${faixa}. O tempo de cada um aparece na lista de valores e ao agendar.` : f.a);
   return (
