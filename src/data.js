@@ -1,5 +1,4 @@
-// Número do WhatsApp com DDI + DDD, só dígitos. Ex.: 5585999999999
-export const WHATSAPP_NUMBER = '558585291830';
+// WhatsApp, redes sociais, endereço, CNPJ e taxa de pré-agendamento vêm do painel ("Dados do estúdio"): ver estudio.js.
 
 // Formas de pagamento (pagas no estúdio): rótulo na tela e nome que a API espera.
 export const PAGAMENTOS = [
@@ -7,7 +6,6 @@ export const PAGAMENTOS = [
   { rotulo: 'Cartão', valor: 'Cartao' },
   { rotulo: 'Dinheiro', valor: 'Dinheiro' },
 ];
-export const TAXA_PRE_AGENDAMENTO = 'R$ 20';
 
 export const etapas = [
   { n: '01', t: 'Conversa', d: 'Entendo sua rotina e o efeito que você imagina: mais natural ou mais marcante.' },
@@ -30,8 +28,9 @@ export const faq = [
   { q: 'Preciso ir de algum jeito específico?', a: 'Vá sem maquiagem nos olhos e sem lentes de contato, se possível.' },
   { q: 'Posso molhar os cílios depois?', a: 'Evite molhar nas primeiras 24 horas. Depois disso, vida normal com os cuidados que eu te passo.' },
   { q: 'Serve pra quem nunca fez?', a: 'Sim. A conversa inicial ajuda você a escolher o efeito ideal pro seu primeiro cílio.' },
-  { q: 'Quais as formas de pagamento?', a: 'Pix, cartão e dinheiro, pagos no estúdio. Para garantir o horário, é cobrada uma taxa de pré-agendamento de R$ 20.' },
-  { q: 'Onde fica o estúdio?', a: 'Travessa Planaltina, 38, Planalto Ayrton Senna, Fortaleza.' },
+  // comTaxa: a frase da taxa entra quando o estúdio cobra; comEndereco: a resposta é o endereço do painel (sem endereço, some)
+  { q: 'Quais as formas de pagamento?', a: 'Pix, cartão e dinheiro, pagos no estúdio.', comTaxa: true },
+  { q: 'Onde fica o estúdio?', a: '', comEndereco: true },
 ];
 
 export const FLAGS = {

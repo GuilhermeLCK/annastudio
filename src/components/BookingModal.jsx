@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { agendar, buscarHorarios, pedirEncaixe } from '../api.js';
 import { agruparProcedimentos, formatarDuracao, procedimentosDaApi } from '../procedimentos.js';
-import { PAGAMENTOS, TAXA_PRE_AGENDAMENTO } from '../data.js';
+import { PAGAMENTOS } from '../data.js';
+import { textoDaTaxa } from '../estudio.js';
 import { linkDoWhatsApp, montarMensagem, montarMensagemDeEncaixe } from '../mensagens.js';
+import { useEstudio } from '../useEstudio.js';
 import { useLenis } from '../lenis.jsx';
 
 const fmtSemanaLonga = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' });
@@ -104,6 +106,9 @@ function ListaDoResumo({ itens, total }) {
 
 const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }) => {
   const lenis = useLenis();
+  // Taxa de pré-agendamento do painel ("Dados do estúdio"); vazia = o estúdio não cobra, e as frases sobre ela somem
+  const estudio = useEstudio();
+  const taxa = estudio ? textoDaTaxa(estudio) : '';
   const titleId = useId();
   const panelRef = useRef(null);
   const telefoneRef = useRef(null);
@@ -431,7 +436,9 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                 </section>
               </div>
               <p className="obs">
-                Para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}. Toque abaixo para avisar a Anna pelo WhatsApp e combinar o pagamento.
+                {taxa
+                  ? `Para garantir o horário, é cobrada uma taxa de pré-agendamento de ${taxa}. Toque abaixo para avisar a Anna pelo WhatsApp e combinar o pagamento.`
+                  : 'Toque abaixo para avisar a Anna pelo WhatsApp: ela confirma o seu horário por lá.'}
               </p>
             </div>
             <footer className="modal__foot modal__foot--stack">
@@ -636,7 +643,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                         {tentou && erros.pagamento && <span className="field__error">{erros.pagamento}</span>}
                       </fieldset>
 
-                      <p className="obs">Obs.: para garantir o horário, é cobrada uma taxa de pré-agendamento de {TAXA_PRE_AGENDAMENTO}.</p>
+                      {taxa && <p className="obs">Obs.: para garantir o horário, é cobrada uma taxa de pré-agendamento de {taxa}.</p>}
                     </>
                   )}
 

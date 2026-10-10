@@ -38,6 +38,9 @@ async function chamar(caminho, opcoes) {
 /** GET /api/site/procedimentos: procedimentos ativos (id, nome, descricao, valor, duracaoEmMinutos). */
 export const buscarProcedimentos = () => chamar('/api/site/procedimentos');
 
+/** GET /api/site/estudio: dados do estúdio (whatsapp, instagrams, facebook, tiktok, endereco, cnpj, taxaDePreAgendamento). */
+export const buscarEstudio = () => chamar('/api/site/estudio');
+
 /** GET /api/site/horarios: dias do mês com horários livres ({ ano, mes, dias: [{ data, horas }] }). */
 export const buscarHorarios = (ano, mes) => chamar(`/api/site/horarios?ano=${ano}&mes=${mes}`);
 

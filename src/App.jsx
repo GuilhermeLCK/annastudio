@@ -5,9 +5,10 @@ import { agruparProcedimentos, faixaDeDuracao, formatarDuracao, formatarPreco } 
 import { useProcedimentos } from './useProcedimentos.js';
 import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
+import { textoDaTaxa } from './estudio.js';
+import { useEstudio } from './useEstudio.js';
 import {
   FLAGS,
-  TAXA_PRE_AGENDAMENTO,
   etapas,
   faq,
   inclui,
@@ -184,6 +185,8 @@ const useListaDePrecos = () => {
 
 const Servicos = ({ onBook }) => {
   const { estado, grupos: lista, tentarDeNovo } = useListaDePrecos();
+  const estudio = useEstudio();
+  const taxa = estudio ? textoDaTaxa(estudio) : '';
 
   return (
   <section id="servicos" className="section section--dark">
@@ -205,7 +208,7 @@ const Servicos = ({ onBook }) => {
             <div className="meta__text">
               <span className="meta__label">PAGAMENTO</span>
               <span className="meta__value">Pix, cartão ou dinheiro</span>
-              <span className="meta__sub">Pré-agendamento: {TAXA_PRE_AGENDAMENTO}</span>
+              {taxa && <span className="meta__sub">Pré-agendamento: {taxa}</span>}
             </div>
           </div>
         </div>
@@ -269,8 +272,16 @@ const Faq = () => {
   const [aberto, setAberto] = useState(0);
   const { lista } = useProcedimentos();
   const faixa = lista ? faixaDeDuracao(lista) : '';
-  // O tempo da resposta vem do cadastro do painel, nunca de um texto fixo
-  const resposta = (f) => (f.comTempo && faixa ? `Depende do procedimento: ${faixa}. O tempo de cada um aparece na lista de valores e ao agendar.` : f.a);
+  const estudio = useEstudio();
+  const taxa = estudio ? textoDaTaxa(estudio) : '';
+  // Tempo, taxa e endereço vêm do painel, nunca de um texto fixo; sem endereço, a pergunta "Onde fica" some
+  const resposta = (f) => {
+    if (f.comTempo && faixa) return `Depende do procedimento: ${faixa}. O tempo de cada um aparece na lista de valores e ao agendar.`;
+    if (f.comTaxa && taxa) return `${f.a} Para garantir o horário, é cobrada uma taxa de pré-agendamento de ${taxa}.`;
+    if (f.comEndereco) return `${estudio.endereco.replace(/\.$/, '')}.`;
+    return f.a;
+  };
+  const perguntas = faq.filter((f) => !f.comEndereco || estudio?.endereco);
   return (
     <section id="duvidas" className="section">
       <div className="container container--faq stack-32">
@@ -279,7 +290,7 @@ const Faq = () => {
           <h2 className="h2">Antes de agendar</h2>
         </Reveal>
         <Reveal className="faq">
-          {faq.map((f, i) => {
+          {perguntas.map((f, i) => {
             const open = aberto === i;
             return (
               <div key={f.q} className={`faq__item ${open ? 'is-open' : ''}`}>
@@ -318,10 +329,32 @@ const CtaFinal = ({ onBook }) => (
   </section>
 );
 
-const ENDERECO = 'Travessa Planaltina, 38, Planalto Ayrton Senna, Fortaleza';
+// Ícones das redes sociais (o do WhatsApp é o WhatsIcon)
+const IconeDoInstagram = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r=".8" fill="currentColor" /></svg>
+);
+const IconeDoFacebook = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h-2.5A3.5 3.5 0 0 0 9 6.5V9H6.5v3.5H9V21h3.5v-8.5H15l.5-3.5h-3V7a1 1 0 0 1 1-1H15V3Z" /></svg>
+);
+const IconeDoTiktok = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5" /><path d="M14 3c.3 2.6 2 4.3 4.5 4.5" /></svg>
+);
+
+// Redes sociais preenchidas em "Dados do estúdio" no painel, na ordem: Instagram (até 3), Facebook e TikTok
+function redesDoEstudio(estudio) {
+  if (!estudio) return [];
+  return [
+    ...estudio.instagrams.map((perfil) => ({ chave: `ig-${perfil.usuario}`, icone: <IconeDoInstagram />, rotulo: `@${perfil.usuario}`, url: perfil.url })),
+    estudio.facebook && { chave: 'facebook', icone: <IconeDoFacebook />, rotulo: estudio.facebook.usuario, url: estudio.facebook.url },
+    estudio.tiktok && { chave: 'tiktok', icone: <IconeDoTiktok />, rotulo: `@${estudio.tiktok.usuario}`, url: estudio.tiktok.url },
+  ].filter(Boolean);
+}
 
 const Footer = ({ onBook }) => {
   const lenis = useLenis();
+  const estudio = useEstudio();
+  const endereco = estudio?.endereco ?? '';
+  const redes = redesDoEstudio(estudio);
   const topo = () => (lenis ? lenis.scrollTo(0, { duration: 1.6 }) : window.scrollTo({ top: 0, behavior: 'smooth' }));
 
   return (
@@ -335,13 +368,15 @@ const Footer = ({ onBook }) => {
           </button>
         </Reveal>
 
-        <Reveal className="footer__col" delay={80}>
-          <h3 className="footer__title">VISITE</h3>
-          <address className="footer__text">{ENDERECO}</address>
-          <a className="footer__link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ENDERECO)}`} target="_blank" rel="noopener">
-            Ver no mapa <span aria-hidden="true">↗</span>
-          </a>
-        </Reveal>
+        {endereco && (
+          <Reveal className="footer__col" delay={80}>
+            <h3 className="footer__title">VISITE</h3>
+            <address className="footer__text">{endereco}</address>
+            <a className="footer__link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`} target="_blank" rel="noopener noreferrer">
+              Ver no mapa <span aria-hidden="true">↗</span>
+            </a>
+          </Reveal>
+        )}
 
         <Reveal className="footer__col" delay={160}>
           <h3 className="footer__title">HORÁRIOS</h3>
@@ -350,12 +385,12 @@ const Footer = ({ onBook }) => {
 
         <Reveal className="footer__col" delay={240}>
           <h3 className="footer__title">CONTATO</h3>
-          <a className="social" href="https://instagram.com/annastudiolash" target="_blank" rel="noopener">
-            <span className="social__icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r=".8" fill="currentColor" /></svg>
-            </span>
-            @annastudiolash
-          </a>
+          {redes.map((rede) => (
+            <a key={rede.chave} className="social" href={rede.url} target="_blank" rel="noopener noreferrer">
+              <span className="social__icon">{rede.icone}</span>
+              {rede.rotulo}
+            </a>
+          ))}
           <button type="button" className="social" onClick={() => onBook()}>
             <span className="social__icon"><WhatsIcon size={18} /></span>
             WhatsApp
@@ -364,7 +399,10 @@ const Footer = ({ onBook }) => {
       </div>
 
       <div className="container footer__bottom">
-        <span>© {new Date().getFullYear()} Anna Studio · Lash Designer · Fortaleza</span>
+        <span>
+          © {new Date().getFullYear()} Anna Studio · Lash Designer · Fortaleza
+          {estudio?.cnpj && <> · CNPJ {estudio.cnpj}</>}
+        </span>
         <button type="button" className="to-top" onClick={topo}>
           Voltar ao topo
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>

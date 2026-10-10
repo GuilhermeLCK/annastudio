@@ -1,13 +1,15 @@
-import { PAGAMENTOS, TAXA_PRE_AGENDAMENTO, WHATSAPP_NUMBER } from './data.js';
+import { PAGAMENTOS } from './data.js';
+import { numeroDoWhatsApp, textoDaTaxa } from './estudio.js';
 
 const fmtMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtDiaCompleto = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
 const SAUDACAO = 'Olá, Anna! Tudo bem?';
 
-// api.whatsapp.com e não wa.me: pelo wa.me o WhatsApp do Windows estraga acentos e símbolos
+// api.whatsapp.com e não wa.me: pelo wa.me o WhatsApp do Windows estraga acentos e símbolos.
+// O número é o de "Dados do estúdio" no painel (estudio.js).
 export function linkDoWhatsApp(mensagem) {
-  return `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER.replace(/\D/g, '')}&text=${encodeURIComponent(mensagem)}`;
+  return `https://api.whatsapp.com/send?phone=${numeroDoWhatsApp()}&text=${encodeURIComponent(mensagem)}`;
 }
 
 const rotuloDoPagamento = (valor) => PAGAMENTOS.find((p) => p.valor === valor)?.rotulo ?? valor;
@@ -32,13 +34,17 @@ const montar = (...partes) => partes.join('\n\n');
 
 /** Reserva feita pelo site: a cliente avisa a Anna e fica no aguardo da confirmação. */
 export function montarMensagem({ reserva, pagamento }) {
+  const taxa = textoDaTaxa();
   return montar(
-    SAUDACAO,
-    `Aqui é *${reserva.nomeCliente}*. Acabei de reservar um horário pelo site e aguardo a sua confirmação.`,
-    [`*Dia:* ${diaPorExtenso(reserva.data)}`, `*Horário:* ${reserva.hora}`].join('\n'),
-    [blocoDosProcedimentos(reserva.procedimentos, reserva.total), `*Pagamento:* ${rotuloDoPagamento(pagamento)}`].join('\n'),
-    `Estou ciente da taxa de ${TAXA_PRE_AGENDAMENTO} para garantir o horário.`,
-    'Agradeço desde já.',
+    ...[
+      SAUDACAO,
+      `Aqui é *${reserva.nomeCliente}*. Acabei de reservar um horário pelo site e aguardo a sua confirmação.`,
+      [`*Dia:* ${diaPorExtenso(reserva.data)}`, `*Horário:* ${reserva.hora}`].join('\n'),
+      [blocoDosProcedimentos(reserva.procedimentos, reserva.total), `*Pagamento:* ${rotuloDoPagamento(pagamento)}`].join('\n'),
+      // A frase da taxa só entra quando o estúdio cobra pré-agendamento
+      taxa && `Estou ciente da taxa de ${taxa} para garantir o horário.`,
+      'Agradeço desde já.',
+    ].filter(Boolean),
   );
 }
 
