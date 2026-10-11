@@ -52,10 +52,13 @@ function mascararTelefone(texto) {
 }
 
 // Mesmas regras da API (quem decide é ela): celular com 11 dígitos começando com 9; fixo com 10 começando com 2 a 5.
+// Mesma regra do painel e da API: DDD válido; celular com 11 dígitos começando com 9; fixo com 10 começando com 2 a 5
 function erroDoTelefone(texto) {
   const d = soDigitos(texto);
   if (d.length < 10) return 'Informe o telefone com DDD.';
+  if (Number(d.slice(0, 2)) < 11) return 'Confira o DDD, por exemplo (85).';
   if (d.length === 10 && /[6-9]/.test(d[2])) return 'Celular precisa do 9 na frente, por exemplo (85) 98765-4321.';
+  if (d.length === 10 && /[01]/.test(d[2])) return 'Confira o número: telefone fixo começa com 2, 3, 4 ou 5 depois do DDD.';
   if (d.length === 11 && d[2] !== '9') return 'Celular começa com 9 depois do DDD.';
   return '';
 }
