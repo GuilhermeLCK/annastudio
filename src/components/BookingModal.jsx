@@ -39,6 +39,9 @@ export function capitalizarNome(texto) {
     .join(' ');
 }
 
+// Observação que a cliente pode deixar no agendamento (mesmo limite da API)
+const LIMITE_DA_OBSERVACAO = 500;
+
 // Máscara de telefone: (85) 98765-4321 (celular) ou (85) 3234-5678 (fixo)
 function mascararTelefone(texto) {
   const d = soDigitos(texto).slice(0, 11);
@@ -129,6 +132,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
   const [hora, setHora] = useState('');
   const [pagamento, setPagamento] = useState('');
   const [preferencia, setPreferencia] = useState('');
+  const [observacao, setObservacao] = useState('');
   const [modo, setModo] = useState('horario'); // 'horario' (escolhe dia e hora) ou 'encaixe' (pede uma data)
   const [pedido, setPedido] = useState(null);
   const [tentou, setTentou] = useState(false);
@@ -151,6 +155,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
     setHora('');
     setPagamento('');
     setPreferencia('');
+    setObservacao('');
     setModo(modoInicial === 'encaixe' ? 'encaixe' : 'horario');
     setPedido(null);
     setTentou(false);
@@ -328,6 +333,8 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
         nomeCliente: nomeFormatado,
         telefone: soDigitos(telefone),
         formaDePagamento: pagamento,
+        // Observação da cliente (opcional, até 500): só vai quando ela escreveu algo
+        ...(observacao.trim() && { observacao: observacao.trim() }),
       });
       setReserva(resposta);
     } catch (erro) {
@@ -529,6 +536,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                                 {p.duracaoEmMinutos > 0 && <span className="svc__tempo">{formatarDuracao(p.duracaoEmMinutos)}</span>}
                                 <span className="svc__dots" aria-hidden="true" />
                                 <span className="svc__price">{fmtMoeda.format(p.valor)}</span>
+                                {(p.descricao ?? '').trim() && <span className="svc__desc">{p.descricao.trim()}</span>}
                               </label>
                             );
                           })}
@@ -642,6 +650,24 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                         </div>
                         {tentou && erros.pagamento && <span className="field__error">{erros.pagamento}</span>}
                       </fieldset>
+
+                      <div className="field">
+                        <label className="field__label" htmlFor="bk-observacao">
+                          Observação <span className="field__opt">(opcional)</span>
+                        </label>
+                        <textarea
+                          id="bk-observacao"
+                          className="input input--area"
+                          rows={3}
+                          maxLength={LIMITE_DA_OBSERVACAO}
+                          placeholder="Ex.: é minha primeira vez, tenho alergia a algum produto, prefiro um efeito mais natural…"
+                          value={observacao}
+                          onChange={(e) => setObservacao(e.target.value)}
+                        />
+                        <span className="field__count" aria-live="polite">
+                          {observacao.length}/{LIMITE_DA_OBSERVACAO}
+                        </span>
+                      </div>
 
                       {taxa && <p className="obs">Obs.: para garantir o horário, é cobrada uma taxa de pré-agendamento de {taxa}.</p>}
                     </>

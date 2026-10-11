@@ -178,7 +178,12 @@ const useListaDePrecos = () => {
   const grupos = (lista ?? []).length
     ? agruparProcedimentos(lista).map((g) => ({
         t: g.t,
-        itens: g.itens.map((p) => ({ n: p.nome, p: formatarPreco(p.valor), tempo: formatarDuracao(p.duracaoEmMinutos) })),
+        itens: g.itens.map((p) => ({
+          n: p.nome,
+          p: formatarPreco(p.valor),
+          tempo: formatarDuracao(p.duracaoEmMinutos),
+          desc: (p.descricao ?? '').trim(),
+        })),
       }))
     : [];
 
@@ -236,6 +241,7 @@ const Servicos = ({ onBook }) => {
                 {s.tempo && <span className="price-row__tempo">{s.tempo}</span>}
                 <span className="price-row__dots" />
                 <span className="price-row__price">{s.p}</span>
+                {s.desc && <span className="price-row__desc">{s.desc}</span>}
               </button>
             ))}
           </Reveal>
