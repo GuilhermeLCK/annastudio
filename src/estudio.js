@@ -9,7 +9,15 @@ const RESERVA = {
   instagrams: [{ usuario: 'annastudiolash', url: 'https://www.instagram.com/annastudiolash/' }],
   facebook: null,
   tiktok: null,
-  endereco: 'Travessa Planaltina, 38, Planalto Ayrton Senna, Fortaleza',
+  cep: '',
+  logradouro: 'Travessa Planaltina',
+  numero: '38',
+  complemento: '',
+  bairro: 'Planalto Ayrton Senna',
+  cidade: 'Fortaleza',
+  uf: 'CE',
+  enderecoParaMapa: 'Travessa Planaltina, 38, Planalto Ayrton Senna, Fortaleza - CE, Brasil',
+  endereco: 'Travessa Planaltina, 38 · Planalto Ayrton Senna · Fortaleza/CE',
   cnpj: null,
   taxaDePreAgendamento: 20,
 };
@@ -46,6 +54,28 @@ export function numeroDoWhatsApp(estudio = estudioAtual()) {
   if (!digitos) return '';
   return digitos.length > 11 && digitos.startsWith('55') ? digitos : `55${digitos}`;
 }
+
+// Endereço em linhas para mostrar: rua e número (– complemento); bairro; cidade – UF · CEP. Vazio sem endereço.
+// A API antiga só tem o texto livre (`endereco`): vira uma linha só.
+export function linhasDoEndereco(estudio) {
+  if (!estudio) return [];
+  if (estudio.logradouro === undefined) return estudio.endereco ? [estudio.endereco] : [];
+  const rua = [estudio.logradouro, estudio.numero].filter(Boolean).join(', ');
+  const cidade = [estudio.cidade, estudio.uf].filter(Boolean).join(' – ');
+  return [
+    estudio.complemento ? `${rua} – ${estudio.complemento}` : rua,
+    estudio.bairro,
+    estudio.cep ? `${cidade} · CEP ${estudio.cep}` : cidade,
+  ].filter(Boolean);
+}
+
+// Texto que o mapa procura (a API monta sem complemento, terminando em "Brasil"); vazio sem endereço.
+export const enderecoDoMapa = (estudio) => estudio?.enderecoParaMapa || estudio?.endereco || '';
+
+// Mapa para pôr na página (iframe), abrir no Google Maps e traçar a rota até o estúdio.
+export const mapaIncorporado = (busca) => `https://www.google.com/maps?q=${encodeURIComponent(busca)}&output=embed`;
+export const linkDoMapa = (busca) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(busca)}`;
+export const linkDaRota = (busca) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(busca)}`;
 
 // "R$ 20" (ou "R$ 19,90"); vazio quando não há taxa.
 export const textoDaTaxa = (estudio = estudioAtual()) =>

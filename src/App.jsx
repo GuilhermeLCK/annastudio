@@ -5,7 +5,7 @@ import { agruparProcedimentos, faixaDeDuracao, formatarDuracao, formatarPreco } 
 import { useProcedimentos } from './useProcedimentos.js';
 import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
-import { textoDaTaxa } from './estudio.js';
+import { enderecoDoMapa, linhasDoEndereco, linkDaRota, linkDoMapa, mapaIncorporado, textoDaTaxa } from './estudio.js';
 import { useEstudio } from './useEstudio.js';
 import {
   FLAGS,
@@ -49,6 +49,7 @@ const ScrollProgress = () => {
 
 const Header = ({ onBook }) => {
   const lenis = useLenis();
+  const temEndereco = linhasDoEndereco(useEstudio()).length > 0;
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
 
@@ -73,6 +74,7 @@ const Header = ({ onBook }) => {
         <nav className="nav">
           <a href="#servicos" className="nav__link">Serviços</a>
           <a href="#duvidas" className="nav__link">Dúvidas</a>
+          {temEndereco && <a href="#onde-fica" className="nav__link">Onde fica</a>}
           <button type="button" className="btn btn--dark btn--sm" onClick={() => onBook()}>Agendar</button>
         </nav>
       </div>
@@ -278,10 +280,10 @@ const Faq = () => {
   const resposta = (f) => {
     if (f.comTempo && faixa) return `Depende do procedimento: ${faixa}. O tempo de cada um aparece na lista de valores e ao agendar.`;
     if (f.comTaxa && taxa) return `${f.a} Para garantir o horário, é cobrada uma taxa de pré-agendamento de ${taxa}.`;
-    if (f.comEndereco) return `${estudio.endereco.replace(/\.$/, '')}.`;
+    if (f.comEndereco) return `${linhasDoEndereco(estudio).join(', ').replace(/\.$/, '')}. O mapa está logo abaixo.`;
     return f.a;
   };
-  const perguntas = faq.filter((f) => !f.comEndereco || estudio?.endereco);
+  const perguntas = faq.filter((f) => !f.comEndereco || linhasDoEndereco(estudio).length > 0);
   return (
     <section id="duvidas" className="section">
       <div className="container container--faq stack-32">
@@ -310,6 +312,49 @@ const Faq = () => {
               </div>
             );
           })}
+        </Reveal>
+      </div>
+    </section>
+  );
+};
+
+// Onde fica o estúdio: endereço, rota e o mapa (só aparece com o endereço preenchido no painel)
+const Localizacao = () => {
+  const estudio = useEstudio();
+  const linhas = linhasDoEndereco(estudio);
+  const busca = enderecoDoMapa(estudio);
+  if (!linhas.length || !busca) return null;
+
+  const [rua, ...resto] = linhas;
+  return (
+    <section id="onde-fica" className="section section--sand">
+      <div className="container local">
+        <Reveal className="local__texto stack-28">
+          <div className="stack-12">
+            <div className="eyebrow">LOCALIZAÇÃO</div>
+            <h2 className="h2">Onde fica o estúdio</h2>
+          </div>
+          <address className="local__endereco">
+            <span className="local__rua">{rua}</span>
+            {resto.map((linha) => <span key={linha}>{linha}</span>)}
+          </address>
+          <div className="cta-par">
+            <a className="btn btn--dark btn--lg" href={linkDaRota(busca)} target="_blank" rel="noopener noreferrer">
+              Como chegar
+            </a>
+            <a className="footer__link" href={linkDoMapa(busca)} target="_blank" rel="noopener noreferrer">
+              Abrir no Google Maps <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </Reveal>
+        <Reveal className="local__mapa" delay={120}>
+          <iframe
+            title="Mapa com a localização do Anna Studio"
+            src={mapaIncorporado(busca)}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            allowFullScreen
+          />
         </Reveal>
       </div>
     </section>
@@ -353,7 +398,8 @@ function redesDoEstudio(estudio) {
 const Footer = ({ onBook }) => {
   const lenis = useLenis();
   const estudio = useEstudio();
-  const endereco = estudio?.endereco ?? '';
+  const linhasDoLocal = linhasDoEndereco(estudio);
+  const busca = enderecoDoMapa(estudio);
   const redes = redesDoEstudio(estudio);
   const topo = () => (lenis ? lenis.scrollTo(0, { duration: 1.6 }) : window.scrollTo({ top: 0, behavior: 'smooth' }));
 
@@ -368,13 +414,22 @@ const Footer = ({ onBook }) => {
           </button>
         </Reveal>
 
-        {endereco && (
+        {linhasDoLocal.length > 0 && (
           <Reveal className="footer__col" delay={80}>
             <h3 className="footer__title">VISITE</h3>
-            <address className="footer__text">{endereco}</address>
-            <a className="footer__link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`} target="_blank" rel="noopener noreferrer">
-              Ver no mapa <span aria-hidden="true">↗</span>
-            </a>
+            <address className="footer__text">
+              {linhasDoLocal.map((linha, i) => (
+                <Fragment key={linha}>
+                  {i > 0 && <br />}
+                  {linha}
+                </Fragment>
+              ))}
+            </address>
+            {busca && (
+              <a className="footer__link" href={linkDoMapa(busca)} target="_blank" rel="noopener noreferrer">
+                Ver no mapa <span aria-hidden="true">↗</span>
+              </a>
+            )}
           </Reveal>
         )}
 
@@ -430,6 +485,7 @@ const App = () => {
           <Servicos onBook={abrir} />
           {FLAGS.showGuarantee && <Garantia />}
           <Faq />
+          <Localizacao />
           <CtaFinal onBook={abrir} />
         </main>
         <Footer onBook={abrir} />

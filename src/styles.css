@@ -434,6 +434,17 @@ a:has(> .logo) { text-decoration: none; }
 .done dt { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--bronze); padding-top: 3px; }
 .done dd { margin: 0; text-align: right; font-family: var(--serif); font-weight: 500; font-size: 19px; line-height: 1.3; text-transform: capitalize; }
 
+/* Onde fica: endereço ao lado do mapa, que fica numa moldura dourada fina (empilha no celular e no tablet em pé) */
+.local { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px 64px; align-items: center; }
+.local__endereco { display: flex; flex-direction: column; gap: 6px; font-style: normal; font-size: 16px; line-height: 1.55; color: var(--ink-2); }
+.local__rua { font-family: var(--serif); font-weight: 500; font-size: clamp(24px, 2.6vw, 30px); line-height: 1.2; color: var(--ink); }
+.local__mapa { padding: 8px; border: 1px solid var(--gold); background: var(--cream); }
+.local__mapa iframe { display: block; width: 100%; aspect-ratio: 4 / 3; border: 0; background: var(--line); filter: saturate(.8) sepia(.06); }
+@media (max-width: 860px) {
+  .local { grid-template-columns: 1fr; }
+  .local__mapa iframe { aspect-ratio: 16 / 11; }
+}
+
 @media (max-width: 560px) {
   .nav { gap: 16px; }
   .nav__link { display: none; }
