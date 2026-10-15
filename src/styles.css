@@ -511,6 +511,8 @@ a:has(> .logo) { text-decoration: none; }
 
 /* Chamadas para o agendamento: botão principal e o link do encaixe ao lado */
 .cta-par { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; align-self: flex-start; }
+/* Link ao lado do botão (ex.: "Abrir no Google Maps"): centralizado com ele, não preso no topo como no rodapé */
+.cta-par > .footer__link { align-self: center; }
 .link-claro { padding: 0 0 2px; border: 0; border-bottom: 1px solid var(--gold-l); background: none; color: var(--dark-text); font: inherit; font-size: 15px; line-height: 1.4; text-align: left; cursor: pointer; transition: color .2s, border-color .2s; }
 .link-claro:hover { color: var(--gold-xl); border-color: var(--gold-xl); }
 
