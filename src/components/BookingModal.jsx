@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { agendar, buscarHorarios, pedirEncaixe } from '../api.js';
-import { agruparProcedimentos, formatarDuracao, procedimentosDaApi } from '../procedimentos.js';
+import { agruparProcedimentos, formatarDuracao, procedimentosDaApi, textoDaManutencao } from '../procedimentos.js';
 import { PAGAMENTOS } from '../data.js';
 import { textoDaTaxa } from '../estudio.js';
 import { linkDoWhatsApp, montarMensagem, montarMensagemDeEncaixe } from '../mensagens.js';
@@ -540,6 +540,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                                 <span className="svc__dots" aria-hidden="true" />
                                 <span className="svc__price">{fmtMoeda.format(p.valor)}</span>
                                 {(p.descricao ?? '').trim() && <span className="svc__desc">{p.descricao.trim()}</span>}
+                                {textoDaManutencao(p) && <span className="svc__manutencao">{textoDaManutencao(p)}</span>}
                               </label>
                             );
                           })}

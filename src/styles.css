@@ -178,6 +178,8 @@ a:has(> .logo) { text-decoration: none; }
   font-size: 14px; line-height: 1.55; color: #A8988A;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
 }
+/* Tempo da manutenção (só nos procedimentos que geram manutenção), em letra pequena embaixo da descrição */
+.price-row__manutencao { flex-basis: 100%; margin-top: -6px; font-size: 12.5px; letter-spacing: 0.02em; color: #B08D57; }
 
 /* Garantia */
 .guarantee { max-width: 880px; margin: 0 auto; border: 1px solid var(--gold); padding: clamp(32px, 5vw, 56px); display: flex; flex-wrap: wrap; gap: 32px; align-items: center; }
@@ -373,6 +375,8 @@ a:has(> .logo) { text-decoration: none; }
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
 }
 .svc.is-active .svc__desc { display: block; }
+/* Tempo da manutenção, alinhado com o nome (só nos procedimentos que geram manutenção) */
+.svc__manutencao { flex-basis: 100%; margin: -6px 0 0 30px; font-size: 12px; color: var(--bronze); }
 .svc.is-active { background: #F4EDE2; }
 .svc.is-active .svc__radio { border-color: var(--ink); }
 .svc.is-active .svc__radio::after { transform: scale(1); }

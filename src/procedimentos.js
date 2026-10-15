@@ -31,6 +31,14 @@ export function formatarDuracao(minutos) {
   return resto === 0 ? `${horas}h` : `${horas}h${String(resto).padStart(2, '0')}`;
 }
 
+// Manutenção do procedimento (só os que geram manutenção no painel): "Manutenção a partir de 15 dias". Vazio quando a
+// API não manda o prazo (procedimento sem manutenção ou API anterior).
+export function textoDaManutencao(procedimento) {
+  const dias = procedimento?.manutencaoEmDias;
+  if (!Number.isInteger(dias) || dias <= 0) return '';
+  return `Manutenção a partir de ${dias} ${dias === 1 ? 'dia' : 'dias'}`;
+}
+
 // Do menor ao maior tempo cadastrado: "de 30 min a 1h30" (ou só "1h30" se todos forem iguais). Vazio sem procedimentos.
 export function faixaDeDuracao(procedimentos) {
   const minutos = procedimentos.map((p) => p.duracaoEmMinutos).filter((m) => Number.isFinite(m) && m > 0);

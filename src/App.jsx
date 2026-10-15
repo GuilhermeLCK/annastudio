@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import AgendaDisponivel from './components/AgendaDisponivel.jsx';
 import BookingModal from './components/BookingModal.jsx';
-import { agruparProcedimentos, faixaDeDuracao, formatarDuracao, formatarPreco } from './procedimentos.js';
+import { agruparProcedimentos, faixaDeDuracao, formatarDuracao, formatarPreco, textoDaManutencao } from './procedimentos.js';
 import { useProcedimentos } from './useProcedimentos.js';
 import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
@@ -183,6 +183,7 @@ const useListaDePrecos = () => {
           p: formatarPreco(p.valor),
           tempo: formatarDuracao(p.duracaoEmMinutos),
           desc: (p.descricao ?? '').trim(),
+          manutencao: textoDaManutencao(p),
         })),
       }))
     : [];
@@ -242,6 +243,7 @@ const Servicos = ({ onBook }) => {
                 <span className="price-row__dots" />
                 <span className="price-row__price">{s.p}</span>
                 {s.desc && <span className="price-row__desc">{s.desc}</span>}
+                {s.manutencao && <span className="price-row__manutencao">{s.manutencao}</span>}
               </button>
             ))}
           </Reveal>

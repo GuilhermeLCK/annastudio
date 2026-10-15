@@ -35,7 +35,10 @@ async function chamar(caminho, opcoes) {
   return resposta.json();
 }
 
-/** GET /api/site/procedimentos: procedimentos ativos (id, nome, descricao, valor, duracaoEmMinutos). */
+/**
+ * GET /api/site/procedimentos: procedimentos ativos (id, nome, descricao, valor, duracaoEmMinutos e, nos que geram
+ * manutenção, manutencaoEmDias).
+ */
 export const buscarProcedimentos = () => chamar('/api/site/procedimentos');
 
 /** GET /api/site/estudio: dados do estúdio (whatsapp, instagrams, facebook, tiktok, endereco, cnpj, taxaDePreAgendamento). */
