@@ -2,8 +2,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { agendar, buscarHorarios, pedirEncaixe } from '../api.js';
 import { agruparProcedimentos, formatarDuracao, procedimentosDaApi, textoDaManutencao } from '../procedimentos.js';
 import { PAGAMENTOS } from '../data.js';
-import { textoDaTaxa } from '../estudio.js';
-import { linkDoWhatsApp, montarMensagem, montarMensagemDeEncaixe } from '../mensagens.js';
+import { AProfissional, aProfissional, nomeDaProfissional, temWhatsApp, textoDaTaxa } from '../estudio.js';
+import { linkDoWhatsApp, mensagemParaAgendar, montarMensagem, montarMensagemDeEncaixe } from '../mensagens.js';
 import { useEstudio } from '../useEstudio.js';
 import { useLenis } from '../lenis.jsx';
 
@@ -115,6 +115,21 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
   // Taxa de pré-agendamento do painel ("Dados do estúdio"); vazia = o estúdio não cobra, e as frases sobre ela somem
   const estudio = useEstudio();
   const taxa = estudio ? textoDaTaxa(estudio) : '';
+  // Quem atende vem do cadastro ("a Anna"); sem o nome, as frases dizem "a profissional". Sem o WhatsApp cadastrado,
+  // os botões e links do WhatsApp somem (a reserva e o pedido de encaixe continuam pelo site).
+  const quemAtende = aProfissional(estudio ?? undefined);
+  const QuemAtende = AProfissional(estudio ?? undefined);
+  const profissional = nomeDaProfissional(estudio ?? undefined);
+  const comWhatsApp = temWhatsApp(estudio ?? undefined);
+  const obsDaReserva = [
+    taxa && `Para garantir o horário, é cobrada uma taxa de pré-agendamento de ${taxa}.`,
+    comWhatsApp &&
+      (taxa
+        ? `Toque abaixo para avisar ${quemAtende} pelo WhatsApp e combinar o pagamento.`
+        : `Toque abaixo para avisar ${quemAtende} pelo WhatsApp: ela confirma o seu horário por lá.`),
+  ]
+    .filter(Boolean)
+    .join(' ');
   const titleId = useId();
   const panelRef = useRef(null);
   const telefoneRef = useRef(null);
@@ -261,7 +276,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
     });
 
   // O pedido de encaixe sempre aparece. Se o servidor ainda não o recebe (a mesma versão que informa o destaque
-  // dos procedimentos), o pedido segue pronto para o WhatsApp da Anna.
+  // dos procedimentos), o pedido segue pronto para o WhatsApp do estúdio.
   const apiRecebeEncaixe = Boolean(procedimentos?.some((p) => typeof p.destaque === 'boolean'));
   const encaixe = modo === 'encaixe';
   const telefoneOk = erroDoTelefone(telefone) === '';
@@ -282,7 +297,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
     total,
     preferencia: preferencia.trim(),
   });
-  // Depois que o pedido foi enviado pelo site: atalho para a cliente falar direto com a Anna
+  // Depois que o pedido foi enviado pelo site: atalho para a cliente falar direto com o estúdio
   const mensagemParaFalar = pedido
     ? montarMensagemDeEncaixe({
         nome: pedido.nomeCliente,
@@ -315,7 +330,8 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
       if (encaixe) {
         const nomes = escolhidos.map((p) => p.nome);
         const itens = escolhidos.map((p) => ({ id: p.id, nome: p.nome, valor: p.valor }));
-        if (apiRecebeEncaixe) {
+        // Sem o WhatsApp cadastrado não há o caminho pelo WhatsApp: o pedido vai sempre pelo site
+        if (apiRecebeEncaixe || !comWhatsApp) {
           await pedirEncaixe({
             nomeCliente: nomeFormatado,
             telefone: soDigitos(telefone),
@@ -382,9 +398,9 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
             <div className="modal__body" data-lenis-prevent>
               <p className="done__lead">
                 {pedido.viaWhatsApp ? (
-                  <>{pedido.nomeCliente.split(' ')[0]}, toque no botão abaixo para <strong>mandar seu pedido para a Anna no WhatsApp</strong>. Ela vê a agenda e responde com uma data.</>
+                  <>{pedido.nomeCliente.split(' ')[0]}, toque no botão abaixo para <strong>mandar seu pedido para {quemAtende} no WhatsApp</strong>. Ela vê a agenda e responde com uma data.</>
                 ) : (
-                  <>Recebido, {pedido.nomeCliente.split(' ')[0]}! A Anna vai ver a agenda e <strong>te chamar no WhatsApp</strong> com uma data para você.</>
+                  <>Recebido, {pedido.nomeCliente.split(' ')[0]}! {QuemAtende} vai ver a agenda e <strong>te chamar no WhatsApp</strong> com uma data para você.</>
                 )}
               </p>
               <div className="resumo">
@@ -399,13 +415,13 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                 </section>
                 <section className="resumo__bloco">
                   <h3 className="resumo__titulo">Quando você prefere</h3>
-                  <p className={pedido.preferencia ? 'resumo__nome' : 'resumo__sub'}>{pedido.preferencia || 'Sem preferência, a Anna sugere uma data.'}</p>
+                  <p className={pedido.preferencia ? 'resumo__nome' : 'resumo__sub'}>{pedido.preferencia || `Sem preferência, ${quemAtende} sugere uma data.`}</p>
                 </section>
               </div>
               <ol className="passos">
                 {(pedido.viaWhatsApp
-                  ? ['Toque em Enviar pelo WhatsApp.', 'A Anna vê a agenda.', 'Ela responde com uma data para você.']
-                  : ['A Anna vê a agenda.', 'Ela te chama no WhatsApp com uma data.', 'Você confirma e o horário fica reservado.']
+                  ? ['Toque em Enviar pelo WhatsApp.', `${QuemAtende} vê a agenda.`, 'Ela responde com uma data para você.']
+                  : [`${QuemAtende} vê a agenda.`, 'Ela te chama no WhatsApp com uma data.', 'Você confirma e o horário fica reservado.']
                 ).map((texto, i) => (
                   <li key={texto}>
                     <span className="passos__n">{i + 1}</span>
@@ -413,18 +429,19 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                   </li>
                 ))}
               </ol>
-              <p className="obs">Seu horário ainda não está reservado: a Anna responde assim que encontrar uma data.</p>
+              <p className="obs">Seu horário ainda não está reservado: {quemAtende} responde assim que encontrar uma data.</p>
             </div>
             <footer className="modal__foot modal__foot--stack">
-              {pedido.viaWhatsApp ? (
-                <a className="btn btn--gold btn--block" href={linkDoWhatsApp(pedido.mensagem)} target="_blank" rel="noopener noreferrer">
-                  Enviar pelo WhatsApp
-                </a>
-              ) : (
-                <a className="btn btn--gold btn--block" href={linkDoWhatsApp(mensagemParaFalar)} target="_blank" rel="noopener noreferrer">
-                  Falar com a Anna no WhatsApp
-                </a>
-              )}
+              {comWhatsApp &&
+                (pedido.viaWhatsApp ? (
+                  <a className="btn btn--gold btn--block" href={linkDoWhatsApp(pedido.mensagem)} target="_blank" rel="noopener noreferrer">
+                    Enviar pelo WhatsApp
+                  </a>
+                ) : (
+                  <a className="btn btn--gold btn--block" href={linkDoWhatsApp(mensagemParaFalar)} target="_blank" rel="noopener noreferrer">
+                    {profissional ? `Falar com a ${profissional} no WhatsApp` : 'Falar no WhatsApp'}
+                  </a>
+                ))}
               <button type="button" className="btn btn--block btn--ghost" onClick={onClose}>Fechar</button>
             </footer>
           </>
@@ -432,7 +449,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
           <>
             <div className="modal__body" data-lenis-prevent>
               <p className="done__lead">
-                Pronto, {reserva.nomeCliente.split(' ')[0]}! Seu horário está reservado e <strong>aguarda a confirmação da Anna</strong>.
+                Pronto, {reserva.nomeCliente.split(' ')[0]}! Seu horário está reservado e <strong>aguarda a confirmação{profissional && ` da ${profissional}`}</strong>.
               </p>
               <dl className="done">
                 <div><dt>Dia</dt><dd className="done__livre">{fmtSemanaLonga.format(deIso(reserva.data)).replace(/^./, (l) => l.toUpperCase())}, {deIso(reserva.data).toLocaleDateString('pt-BR')}</dd></div>
@@ -445,16 +462,14 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                   <ListaDoResumo itens={reserva.procedimentos} total={reserva.total} />
                 </section>
               </div>
-              <p className="obs">
-                {taxa
-                  ? `Para garantir o horário, é cobrada uma taxa de pré-agendamento de ${taxa}. Toque abaixo para avisar a Anna pelo WhatsApp e combinar o pagamento.`
-                  : 'Toque abaixo para avisar a Anna pelo WhatsApp: ela confirma o seu horário por lá.'}
-              </p>
+              {obsDaReserva && <p className="obs">{obsDaReserva}</p>}
             </div>
             <footer className="modal__foot modal__foot--stack">
-              <a className="btn btn--gold btn--block" href={linkDoWhatsApp(montarMensagem({ reserva, pagamento }))} target="_blank" rel="noopener noreferrer">
-                Avisar a Anna no WhatsApp
-              </a>
+              {comWhatsApp && (
+                <a className="btn btn--gold btn--block" href={linkDoWhatsApp(montarMensagem({ reserva, pagamento }))} target="_blank" rel="noopener noreferrer">
+                  {profissional ? `Avisar a ${profissional} no WhatsApp` : 'Avisar pelo WhatsApp'}
+                </a>
+              )}
               <button type="button" className="btn btn--block btn--ghost" onClick={onClose}>Fechar</button>
             </footer>
           </>
@@ -464,10 +479,14 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
               {semAgenda ? (
                 <div className="aviso-erro" role="alert">
                   <p>{erroDeCarga}</p>
-                  <p>Você ainda pode combinar seu horário direto com a Anna pelo WhatsApp.</p>
-                  <a className="btn btn--gold btn--block" href={linkDoWhatsApp('Olá, Anna! Gostaria de agendar um horário.')} target="_blank" rel="noopener noreferrer">
-                    Chamar no WhatsApp
-                  </a>
+                  {comWhatsApp && (
+                    <>
+                      <p>Você ainda pode combinar seu horário direto com {quemAtende} pelo WhatsApp.</p>
+                      <a className="btn btn--gold btn--block" href={linkDoWhatsApp(mensagemParaAgendar())} target="_blank" rel="noopener noreferrer">
+                        Chamar no WhatsApp
+                      </a>
+                    </>
+                  )}
                 </div>
               ) : (
                 <>
@@ -482,7 +501,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
 
                   {encaixe && (
                     <p className="encaixe-info">
-                      Nenhum horário serviu? Sem escolher dia nem hora, a Anna vê a agenda, tenta um encaixe e <strong>te chama no WhatsApp</strong> com uma data. O horário só fica reservado quando ela confirmar.
+                      Nenhum horário serviu? Sem escolher dia nem hora, {quemAtende} vê a agenda, tenta um encaixe e <strong>te chama no WhatsApp</strong> com uma data. O horário só fica reservado quando ela confirmar.
                     </p>
                   )}
 
@@ -613,7 +632,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                         <div className="encaixe-cta">
                           <div className="encaixe-cta__texto">
                             <strong className="encaixe-cta__titulo">Nenhum horário serve?</strong>
-                            <span className="encaixe-cta__sub">Peça um encaixe ou uma nova data. A Anna vê a agenda e te chama no WhatsApp.</span>
+                            <span className="encaixe-cta__sub">Peça um encaixe ou uma nova data. {QuemAtende} vê a agenda e te chama no WhatsApp.</span>
                           </div>
                           <button type="button" className="btn btn--ghost btn--sm" onClick={() => alternarModo('encaixe')}>
                             Pedir encaixe
@@ -699,7 +718,7 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                   {erroDoEnvio && (
                     <p className="form-error" role="alert">{erroDoEnvio}</p>
                   )}
-                  {erroDoEnvio && encaixe && (
+                  {erroDoEnvio && encaixe && comWhatsApp && (
                     <a className="btn btn--ghost btn--block" href={linkDoWhatsApp(mensagemDoEncaixe)} target="_blank" rel="noopener noreferrer">
                       Pedir pelo WhatsApp
                     </a>

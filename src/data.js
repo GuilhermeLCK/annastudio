@@ -1,11 +1,17 @@
 // WhatsApp, redes sociais, endereço, CNPJ e taxa de pré-agendamento vêm do painel ("Dados do estúdio"): ver estudio.js.
 
-// Formas de pagamento (pagas no estúdio): rótulo na tela e nome que a API espera.
+// Formas de pagamento (pagas no estúdio), num lugar só: rótulo na tela, como entra numa frase e o nome que a API espera.
 export const PAGAMENTOS = [
-  { rotulo: 'Pix', valor: 'Pix' },
-  { rotulo: 'Cartão', valor: 'Cartao' },
-  { rotulo: 'Dinheiro', valor: 'Dinheiro' },
+  { rotulo: 'Pix', naFrase: 'Pix', valor: 'Pix' },
+  { rotulo: 'Cartão', naFrase: 'cartão', valor: 'Cartao' },
+  { rotulo: 'Dinheiro', naFrase: 'dinheiro', valor: 'Dinheiro' },
 ];
+
+// As formas numa frase: "Pix, cartão e dinheiro" (ou "... ou dinheiro").
+export function formasDePagamento(conjuncao = 'e') {
+  const nomes = PAGAMENTOS.map((p) => p.naFrase);
+  return nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} ${conjuncao} ${nomes.at(-1)}` : nomes.join('');
+}
 
 export const etapas = [
   { n: '01', t: 'Conversa', d: 'Entendo sua rotina e o efeito que você imagina: mais natural ou mais marcante.' },
@@ -26,10 +32,9 @@ export const faq = [
   { q: 'Não achei um horário bom, e agora?', a: 'Toque em “Agendar” e escolha “Pedir encaixe”. Você diz o procedimento e quando prefere, eu vejo a agenda e te chamo no WhatsApp com uma data.' },
   { q: 'Quanto tempo dura o atendimento?', a: 'Depende do procedimento escolhido.', comTempo: true },
   { q: 'Preciso ir de algum jeito específico?', a: 'Vá sem maquiagem nos olhos e sem lentes de contato, se possível.' },
-  { q: 'Posso molhar os cílios depois?', a: 'Evite molhar nas primeiras 24 horas. Depois disso, vida normal com os cuidados que eu te passo.' },
   { q: 'Serve pra quem nunca fez?', a: 'Sim. A conversa inicial ajuda você a escolher o efeito ideal pro seu primeiro cílio.' },
   // comTaxa: a frase da taxa entra quando o estúdio cobra; comEndereco: a resposta é o endereço do painel (sem endereço, some)
-  { q: 'Quais as formas de pagamento?', a: 'Pix, cartão e dinheiro, pagos no estúdio.', comTaxa: true },
+  { q: 'Quais as formas de pagamento?', a: `${formasDePagamento()}, pagos no estúdio.`, comTaxa: true },
   { q: 'Onde fica o estúdio?', a: '', comEndereco: true },
 ];
 

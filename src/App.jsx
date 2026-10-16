@@ -5,26 +5,52 @@ import { agruparProcedimentos, faixaDeDuracao, formatarDuracao, formatarPreco, t
 import { useProcedimentos } from './useProcedimentos.js';
 import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
-import { enderecoDoMapa, linhasDoEndereco, linkDaRota, linkDoMapa, mapaIncorporado, textoDaTaxa } from './estudio.js';
+import {
+  bairroDoEstudio,
+  cidadeDoEstudio,
+  enderecoDoMapa,
+  especialidadeDoEstudio,
+  linhasDoEndereco,
+  linkDaRota,
+  linkDoMapa,
+  mapaIncorporado,
+  nomeDaProfissional,
+  nomeDoEstudio,
+  temWhatsApp,
+  textoDaTaxa,
+  tituloDoSite,
+} from './estudio.js';
+import { useCuidados } from './useCuidados.js';
 import { useEstudio } from './useEstudio.js';
 import {
   FLAGS,
   etapas,
   faq,
+  formasDePagamento,
   inclui,
 } from './data.js';
 import { LenisProvider, useLenis } from './lenis.jsx';
 
-const Logo = ({ size = 22 }) => (
-  <span className="logo">
-    <span className="logo__name" style={{ fontSize: size }}>ANNA STUDIO</span>
-    <span className="logo__tag">
-      <span className="logo__rule" />
-      <span>LASH DESIGNER</span>
-      <span className="logo__rule" />
+// Nome e especialidade de "Dados do estúdio" (painel); sem o nome cadastrado não há logo (nada escrito à mão).
+const Logo = ({ size = 22 }) => {
+  const estudio = useEstudio();
+  const nome = nomeDoEstudio(estudio);
+  const especialidade = especialidadeDoEstudio(estudio);
+  if (!nome) return null;
+
+  return (
+    <span className="logo">
+      <span className="logo__name" style={{ fontSize: size }}>{nome.toLocaleUpperCase('pt-BR')}</span>
+      {especialidade && (
+        <span className="logo__tag">
+          <span className="logo__rule" />
+          <span>{especialidade.toLocaleUpperCase('pt-BR')}</span>
+          <span className="logo__rule" />
+        </span>
+      )}
     </span>
-  </span>
-);
+  );
+};
 
 const WhatsIcon = ({ size = 28, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -49,7 +75,9 @@ const ScrollProgress = () => {
 
 const Header = ({ onBook }) => {
   const lenis = useLenis();
-  const temEndereco = linhasDoEndereco(useEstudio()).length > 0;
+  const estudio = useEstudio();
+  const temEndereco = linhasDoEndereco(estudio).length > 0;
+  const nome = nomeDoEstudio(estudio);
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
 
@@ -70,7 +98,8 @@ const Header = ({ onBook }) => {
   return (
     <header className={`header ${scrolled ? 'is-scrolled' : ''} ${hidden ? 'is-hidden' : ''}`}>
       <div className="container header__inner">
-        <a href="#topo" aria-label="Anna Studio, voltar ao topo"><Logo /></a>
+        {/* Sem o nome cadastrado, o espaço do logo fica vazio e o menu continua à direita */}
+        {nome ? <a href="#topo" aria-label={`${nome}, voltar ao topo`}><Logo /></a> : <span />}
         <nav className="nav">
           <a href="#servicos" className="nav__link">Serviços</a>
           <a href="#duvidas" className="nav__link">Dúvidas</a>
@@ -82,9 +111,15 @@ const Header = ({ onBook }) => {
   );
 };
 
+// Cidade e bairro saem do endereço cadastrado; profissional e especialidade, de "Dados do estúdio". Vazios, o trecho some.
 const Hero = ({ onBook }) => {
   const lenis = useLenis();
   const imgRef = useRef(null);
+  const estudio = useEstudio();
+  const cidade = cidadeDoEstudio(estudio);
+  const bairro = bairroDoEstudio(estudio);
+  const profissional = nomeDaProfissional(estudio);
+  const especialidade = especialidadeDoEstudio(estudio);
 
   useEffect(() => {
     if (!lenis) return;
@@ -97,7 +132,7 @@ const Hero = ({ onBook }) => {
     <section id="topo" className="section hero">
       <div className="container hero__grid">
         <div className="hero__copy">
-          <div className="eyebrow hero__in">EXTENSÃO DE CÍLIOS · FORTALEZA</div>
+          <div className="eyebrow hero__in">EXTENSÃO DE CÍLIOS{cidade && `\u00a0· ${cidade.toLocaleUpperCase('pt-BR')}`}</div>
           <h1 className="hero__title" aria-label="Um olhar desenhado só para você.">
             {'Um olhar desenhado só para você.'.split(' ').map((w, i) => (
               <Fragment key={i}>
@@ -108,7 +143,7 @@ const Hero = ({ onBook }) => {
             ))}
           </h1>
           <p className="hero__lead hero__in" style={{ animationDelay: '.2s' }}>
-            Extensão de cílios sob medida no Planalto Ayrton Senna. Volume brasileiro, volume egípcio e outras técnicas, com atendimento individual e hora marcada.
+            Extensão de cílios sob medida{bairro && ` no bairro ${bairro}`}. Volume brasileiro, volume egípcio e outras técnicas, com atendimento individual e hora marcada.
           </p>
           <div className="hero__in" style={{ animationDelay: '.3s' }}>
             <button type="button" className="btn btn--dark btn--lg" onClick={() => onBook()}>
@@ -119,30 +154,37 @@ const Hero = ({ onBook }) => {
         <div className="hero__media">
           <div className="hero__frame" />
           <div className="hero__photo">
-            <img ref={imgRef} src="/anna-hero.png" alt="Anna, lash designer do Anna Studio" />
+            <img ref={imgRef} src="/anna-hero.png" alt={[profissional, especialidade].filter(Boolean).join(', ')} />
             <div className="hero__shade" />
           </div>
-          <div className="hero__badge">
-            <span className="hero__badge-name">Anna</span>
-            <span className="hero__badge-tag">LASH DESIGNER</span>
-          </div>
+          {(profissional || especialidade) && (
+            <div className="hero__badge">
+              {profissional && <span className="hero__badge-name">{profissional}</span>}
+              {especialidade && <span className="hero__badge-tag">{especialidade.toLocaleUpperCase('pt-BR')}</span>}
+            </div>
+          )}
         </div>
       </div>
     </section>
   );
 };
 
-const Intro = () => (
-  <section className="section section--sand">
-    <Reveal className="container container--narrow center stack-22">
-      <LashMark className="lash-draw" />
-      <h2 className="h2">Imagina abrir os olhos de manhã e já se sentir bonita.</h2>
-      <p className="lead-italic">Sem rímel, sem curvex, sem pressa na frente do espelho.</p>
-      <p className="body">No Anna Studio, cada aplicação começa pelo seu olhar: o formato dos seus olhos, a força dos seus fios e o efeito que combina com a sua rotina.</p>
-      <p className="body body--strong">O resultado é um olhar marcante, leve e natural, que dura semanas.</p>
-    </Reveal>
-  </section>
-);
+// "No {nome do estúdio}, ..." com o nome cadastrado; sem ele, "Aqui, ...".
+const Intro = () => {
+  const nome = nomeDoEstudio(useEstudio());
+
+  return (
+    <section className="section section--sand">
+      <Reveal className="container container--narrow center stack-22">
+        <LashMark className="lash-draw" />
+        <h2 className="h2">Imagina abrir os olhos de manhã e já se sentir bonita.</h2>
+        <p className="lead-italic">Sem rímel, sem curvex, sem pressa na frente do espelho.</p>
+        <p className="body">{nome ? `No ${nome}` : 'Aqui'}, cada aplicação começa pelo seu olhar: o formato dos seus olhos, a força dos seus fios e o efeito que combina com a sua rotina.</p>
+        <p className="body body--strong">O resultado é um olhar marcante, leve e natural, que dura semanas.</p>
+      </Reveal>
+    </section>
+  );
+};
 
 // O tempo da aplicação não é escrito à mão: vem do cadastro do painel (do menor ao maior tempo dos procedimentos).
 const Etapas = () => {
@@ -215,7 +257,7 @@ const Servicos = ({ onBook }) => {
             </svg>
             <div className="meta__text">
               <span className="meta__label">PAGAMENTO</span>
-              <span className="meta__value">Pix, cartão ou dinheiro</span>
+              <span className="meta__value">{formasDePagamento('ou')}</span>
               {taxa && <span className="meta__sub">Pré-agendamento: {taxa}</span>}
             </div>
           </div>
@@ -262,7 +304,10 @@ const Servicos = ({ onBook }) => {
   );
 };
 
-const Garantia = () => (
+const Garantia = () => {
+  const nome = nomeDoEstudio(useEstudio());
+
+  return (
   <section className="section section--flush-top">
     <Reveal className="guarantee">
       <div className="guarantee__seal">
@@ -270,13 +315,40 @@ const Garantia = () => (
         <small>DIAS DE<br />RETOQUE</small>
       </div>
       <div className="stack-12" style={{ flex: 1, minWidth: 240 }}>
-        <div className="eyebrow">COMPROMISSO ANNA STUDIO</div>
+        <div className="eyebrow">{nome ? `COMPROMISSO ${nome.toLocaleUpperCase('pt-BR')}` : 'NOSSO COMPROMISSO'}</div>
         <h2 className="h3">Seu olhar precisa ficar do jeito que você sonhou.</h2>
         <p className="body-sm">Se algum fio soltar nos primeiros 3 dias, o retoque é por minha conta. Sem custo e sem burocracia.</p>
       </div>
     </Reveal>
   </section>
-);
+  );
+};
+
+// Cuidados depois da aplicação: os que o estúdio cadastrou no painel, na ordem de lá; sem nenhum, a seção some.
+const Cuidados = () => {
+  const cuidados = useCuidados();
+  if (!cuidados?.length) return null;
+
+  return (
+    <section id="cuidados" className="section section--sand">
+      <div className="container stack-56">
+        <Reveal className="center stack-12">
+          <div className="eyebrow">CUIDADOS</div>
+          <h2 className="h2">Depois da aplicação</h2>
+        </Reveal>
+        <ol className="cuidados">
+          {cuidados.map((c, i) => (
+            <Reveal as="li" key={`${i}-${c.titulo}`} className="cuidado" delay={(i % 4) * 90}>
+              <span className="step__n">{String(i + 1).padStart(2, '0')}</span>
+              <h3 className="cuidado__t">{c.titulo}</h3>
+              {c.detalhe?.trim() && <p className="body-sm">{c.detalhe.trim()}</p>}
+            </Reveal>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+};
 
 const Faq = () => {
   const [aberto, setAberto] = useState(0);
@@ -329,6 +401,7 @@ const Faq = () => {
 // Onde fica o estúdio: endereço, rota e o mapa (só aparece com o endereço preenchido no painel)
 const Localizacao = () => {
   const estudio = useEstudio();
+  const nome = nomeDoEstudio(estudio);
   const linhas = linhasDoEndereco(estudio);
   const busca = enderecoDoMapa(estudio);
   if (!linhas.length || !busca) return null;
@@ -357,7 +430,7 @@ const Localizacao = () => {
         </Reveal>
         <Reveal className="local__mapa" delay={120}>
           <iframe
-            title="Mapa com a localização do Anna Studio"
+            title={nome ? `Mapa com a localização do ${nome}` : 'Mapa com a localização do estúdio'}
             src={mapaIncorporado(busca)}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
@@ -377,7 +450,7 @@ const CtaFinal = ({ onBook }) => (
       <button type="button" className="btn btn--gold btn--lg" style={{ marginTop: 8 }} onClick={() => onBook()}>
         Agendar meu horário no WhatsApp
       </button>
-      <span className="fine">Atendimento individual • Pix, cartão e dinheiro</span>
+      <span className="fine">Atendimento individual • {formasDePagamento()}</span>
     </Reveal>
   </section>
 );
@@ -409,6 +482,10 @@ const Footer = ({ onBook }) => {
   const linhasDoLocal = linhasDoEndereco(estudio);
   const busca = enderecoDoMapa(estudio);
   const redes = redesDoEstudio(estudio);
+  // Sem o WhatsApp cadastrado, o atalho do WhatsApp sai do Contato (e a coluna some se não houver rede social)
+  const comWhatsApp = estudio ? temWhatsApp(estudio) : false;
+  // "Nome · Especialidade · Cidade" do cadastro, só o que estiver preenchido
+  const marca = [nomeDoEstudio(estudio), especialidadeDoEstudio(estudio), cidadeDoEstudio(estudio)].filter(Boolean);
   const topo = () => (lenis ? lenis.scrollTo(0, { duration: 1.6 }) : window.scrollTo({ top: 0, behavior: 'smooth' }));
 
   return (
@@ -446,25 +523,29 @@ const Footer = ({ onBook }) => {
           <AgendaDisponivel onBook={onBook} />
         </Reveal>
 
-        <Reveal className="footer__col" delay={240}>
-          <h3 className="footer__title">CONTATO</h3>
-          {redes.map((rede) => (
-            <a key={rede.chave} className="social" href={rede.url} target="_blank" rel="noopener noreferrer">
-              <span className="social__icon">{rede.icone}</span>
-              {rede.rotulo}
-            </a>
-          ))}
-          <button type="button" className="social" onClick={() => onBook()}>
-            <span className="social__icon"><WhatsIcon size={18} /></span>
-            WhatsApp
-          </button>
-        </Reveal>
+        {(redes.length > 0 || comWhatsApp) && (
+          <Reveal className="footer__col" delay={240}>
+            <h3 className="footer__title">CONTATO</h3>
+            {redes.map((rede) => (
+              <a key={rede.chave} className="social" href={rede.url} target="_blank" rel="noopener noreferrer">
+                <span className="social__icon">{rede.icone}</span>
+                {rede.rotulo}
+              </a>
+            ))}
+            {comWhatsApp && (
+              <button type="button" className="social" onClick={() => onBook()}>
+                <span className="social__icon"><WhatsIcon size={18} /></span>
+                WhatsApp
+              </button>
+            )}
+          </Reveal>
+        )}
       </div>
 
       <div className="container footer__bottom">
         <span>
-          © {new Date().getFullYear()} Anna Studio · Lash Designer · Fortaleza
-          {estudio?.cnpj && <> · CNPJ {estudio.cnpj}</>}
+          {marca.length > 0 && <>© {new Date().getFullYear()} {marca.join('\u00a0· ')}</>}
+          {estudio?.cnpj && <>{marca.length > 0 && '\u00a0· '}CNPJ {estudio.cnpj}</>}
         </span>
         <button type="button" className="to-top" onClick={topo}>
           Voltar ao topo
@@ -480,6 +561,12 @@ const App = () => {
   // modo: 'horario' (escolhe dia e hora) ou 'encaixe' (a cliente pede uma data quando nenhum horário serviu)
   const abrir = useCallback((servico = '', modo = 'horario') => setBooking({ open: true, servico, modo }), []);
   const fechar = useCallback(() => setBooking((b) => ({ ...b, open: false })), []);
+  const estudio = useEstudio();
+
+  // Título da aba com o nome e a especialidade cadastrados (o index.html traz só um título genérico)
+  useEffect(() => {
+    if (estudio) document.title = tituloDoSite(estudio);
+  }, [estudio]);
 
   return (
     <LenisProvider>
@@ -492,6 +579,7 @@ const App = () => {
           <Etapas />
           <Servicos onBook={abrir} />
           {FLAGS.showGuarantee && <Garantia />}
+          <Cuidados />
           <Faq />
           <Localizacao />
           <CtaFinal onBook={abrir} />

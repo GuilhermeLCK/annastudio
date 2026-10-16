@@ -1,28 +1,31 @@
 import { buscarEstudio } from './api.js';
 import { formatarPreco } from './procedimentos.js';
 
-// Dados do estúdio (WhatsApp, redes sociais, endereço, CNPJ e taxa) vêm do painel, em "Dados do estúdio".
-// O que não foi preenchido vem vazio/nulo e o site não mostra. Só se a API não responder o site usa a reserva abaixo,
-// para a cliente ainda conseguir falar com a Anna.
-const RESERVA = {
-  whatsapp: '8585291830',
-  instagrams: [{ usuario: 'annastudiolash', url: 'https://www.instagram.com/annastudiolash/' }],
+// Dados do estúdio (nome, especialidade, profissional, WhatsApp, redes sociais, endereço, CNPJ e taxa) vêm do painel,
+// em "Dados do estúdio". Nada é escrito à mão aqui: o que não foi preenchido vem vazio e o site não mostra. Se a API
+// não responder, o site fica com o estúdio vazio (nenhum nome, contato ou endereço inventado).
+const VAZIO = {
+  whatsapp: '',
+  instagrams: [],
   facebook: null,
   tiktok: null,
   cep: '',
-  logradouro: 'Travessa Planaltina',
-  numero: '38',
+  logradouro: '',
+  numero: '',
   complemento: '',
-  bairro: 'Planalto Ayrton Senna',
-  cidade: 'Fortaleza',
-  uf: 'CE',
-  enderecoParaMapa: 'Travessa Planaltina, 38, Planalto Ayrton Senna, Fortaleza - CE, Brasil',
-  endereco: 'Travessa Planaltina, 38 · Planalto Ayrton Senna · Fortaleza/CE',
+  bairro: '',
+  cidade: '',
+  uf: '',
+  enderecoParaMapa: '',
+  endereco: '',
   cnpj: null,
-  taxaDePreAgendamento: 20,
+  taxaDePreAgendamento: null,
+  nomeDoEstudio: '',
+  especialidade: '',
+  nomeDaProfissional: '',
 };
 
-let atual = null; // o que já chegou (ou a reserva, se a API falhou)
+let atual = null; // o que já chegou (ou o estúdio vazio, se a API falhou)
 let promessa = null;
 
 // Busca uma vez e divide a mesma chamada entre quem pedir junto; se falhar, a próxima tentativa busca de novo.
@@ -35,7 +38,7 @@ export function estudioDaApi() {
       })
       .catch(() => {
         promessa = null;
-        atual = atual ?? RESERVA;
+        atual = atual ?? VAZIO;
         return atual;
       });
   }
@@ -45,8 +48,25 @@ export function estudioDaApi() {
 // O que já chegou, ou null enquanto carrega (os componentes não mostram nada nesse meio tempo).
 export const estudioCarregado = () => atual;
 
-// Para quem precisa do dado na hora (ex.: montar o link do WhatsApp depois de agendar): o que chegou ou a reserva.
-export const estudioAtual = () => atual ?? RESERVA;
+// Para quem precisa do dado na hora (ex.: montar o link do WhatsApp depois de agendar): o que chegou ou o vazio.
+export const estudioAtual = () => atual ?? VAZIO;
+
+// Texto do cadastro sem espaços nas pontas; vazio se não veio (API anterior, sem o campo).
+const campo = (estudio, nome) => (estudio?.[nome] ?? '').trim();
+
+// Identidade do estúdio: vazia = o trecho que a usa some (ou a frase fica sem o nome).
+export const nomeDoEstudio = (estudio = estudioAtual()) => campo(estudio, 'nomeDoEstudio');
+export const especialidadeDoEstudio = (estudio = estudioAtual()) => campo(estudio, 'especialidade');
+export const nomeDaProfissional = (estudio = estudioAtual()) => campo(estudio, 'nomeDaProfissional');
+
+// Quem atende, para pôr no meio da frase: "a Anna" ou, sem o nome cadastrado, "a profissional".
+export const aProfissional = (estudio = estudioAtual()) => {
+  const nome = nomeDaProfissional(estudio);
+  return nome ? `a ${nome}` : 'a profissional';
+};
+
+// O mesmo no começo da frase: "A Anna" ou "A profissional".
+export const AProfissional = (estudio = estudioAtual()) => aProfissional(estudio).replace(/^a/, 'A');
 
 // WhatsApp no formato do link (55 + DDD + número); vazio se o estúdio não informou.
 export function numeroDoWhatsApp(estudio = estudioAtual()) {
@@ -54,6 +74,9 @@ export function numeroDoWhatsApp(estudio = estudioAtual()) {
   if (!digitos) return '';
   return digitos.length > 11 && digitos.startsWith('55') ? digitos : `55${digitos}`;
 }
+
+// Diz se dá para mandar mensagem: sem o WhatsApp cadastrado, os botões e links do WhatsApp somem.
+export const temWhatsApp = (estudio = estudioAtual()) => numeroDoWhatsApp(estudio) !== '';
 
 // Endereço em linhas para mostrar: rua e número (– complemento); bairro; cidade – UF · CEP. Vazio sem endereço.
 // A API antiga só tem o texto livre (`endereco`): vira uma linha só.
@@ -69,6 +92,10 @@ export function linhasDoEndereco(estudio) {
   ].filter(Boolean);
 }
 
+// Cidade e bairro do endereço cadastrado, para as frases do site; vazios sem endereço (o trecho some).
+export const cidadeDoEstudio = (estudio) => campo(estudio, 'cidade');
+export const bairroDoEstudio = (estudio) => campo(estudio, 'bairro');
+
 // Texto que o mapa procura (a API monta sem complemento, terminando em "Brasil"); vazio sem endereço.
 export const enderecoDoMapa = (estudio) => estudio?.enderecoParaMapa || estudio?.endereco || '';
 
@@ -80,3 +107,9 @@ export const linkDaRota = (busca) => `https://www.google.com/maps/dir/?api=1&des
 // "R$ 20" (ou "R$ 19,90"); vazio quando não há taxa.
 export const textoDaTaxa = (estudio = estudioAtual()) =>
   estudio.taxaDePreAgendamento ? formatarPreco(estudio.taxaDePreAgendamento) : '';
+
+// Título da aba: "Nome · Especialidade", só o nome ou, sem cadastro, o genérico do index.html.
+export function tituloDoSite(estudio) {
+  const partes = [nomeDoEstudio(estudio), especialidadeDoEstudio(estudio)].filter(Boolean);
+  return partes.length ? partes.join(' · ') : 'Agende seu horário';
+}

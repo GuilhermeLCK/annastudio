@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { buscarHorarios } from '../api.js';
+import { aProfissional } from '../estudio.js';
+import { useEstudio } from '../useEstudio.js';
 
 const fmtDia = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
 
@@ -26,6 +28,7 @@ async function buscarProximosDias() {
 const AgendaDisponivel = ({ onBook }) => {
   const [dias, setDias] = useState(null);
   const [falhou, setFalhou] = useState(false);
+  const quemAtende = aProfissional(useEstudio() ?? undefined); // "a Anna" ou, sem o nome cadastrado, "a profissional"
 
   useEffect(() => {
     let ativo = true;
@@ -64,7 +67,7 @@ const AgendaDisponivel = ({ onBook }) => {
   if (!proximo) {
     return (
       <>
-        <p className="footer__text">Agenda cheia por enquanto. Peça um encaixe e a Anna te chama no WhatsApp.</p>
+        <p className="footer__text">Agenda cheia por enquanto. Peça um encaixe e {quemAtende} te chama no WhatsApp.</p>
         {pedirEncaixe}
       </>
     );

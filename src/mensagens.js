@@ -1,10 +1,15 @@
 import { PAGAMENTOS } from './data.js';
-import { numeroDoWhatsApp, textoDaTaxa } from './estudio.js';
+import { nomeDaProfissional, numeroDoWhatsApp, textoDaTaxa } from './estudio.js';
 
 const fmtMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtDiaCompleto = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-const SAUDACAO = 'Olá, Anna! Tudo bem?';
+// Saudação com o nome da profissional do cadastro ("Olá, Anna!") ou, sem ele, só "Olá!"; nunca um nome inventado.
+const ola = () => (nomeDaProfissional() ? `Olá, ${nomeDaProfissional()}!` : 'Olá!');
+const saudacao = () => `${ola()} Tudo bem?`;
+
+/** Mensagem curta para chamar o estúdio quando o site não carregou os horários. */
+export const mensagemParaAgendar = () => `${ola()} Gostaria de agendar um horário.`;
 
 // api.whatsapp.com e não wa.me: pelo wa.me o WhatsApp do Windows estraga acentos e símbolos.
 // O número é o de "Dados do estúdio" no painel (estudio.js).
@@ -32,12 +37,12 @@ function blocoDosProcedimentos(itens, total) {
 // com uma linha em branco entre as partes e *negrito* nos rótulos. Sem gênero e sem hífen no meio do texto.
 const montar = (...partes) => partes.join('\n\n');
 
-/** Reserva feita pelo site: a cliente avisa a Anna e fica no aguardo da confirmação. */
+/** Reserva feita pelo site: a cliente avisa o estúdio e fica no aguardo da confirmação. */
 export function montarMensagem({ reserva, pagamento }) {
   const taxa = textoDaTaxa();
   return montar(
     ...[
-      SAUDACAO,
+      saudacao(),
       `Aqui é *${reserva.nomeCliente}*. Acabei de reservar um horário pelo site e aguardo a sua confirmação.`,
       [`*Dia:* ${diaPorExtenso(reserva.data)}`, `*Horário:* ${reserva.hora}`].join('\n'),
       [blocoDosProcedimentos(reserva.procedimentos, reserva.total), `*Pagamento:* ${rotuloDoPagamento(pagamento)}`].join('\n'),
@@ -50,7 +55,7 @@ export function montarMensagem({ reserva, pagamento }) {
 
 /**
  * Pedido de encaixe pelo WhatsApp: antes de enviar pelo site (servidor sem a rota) ou depois, para a cliente
- * falar direto com a Anna (`jaEnviado`).
+ * falar direto com o estúdio (`jaEnviado`).
  */
 export function montarMensagemDeEncaixe({ nome, telefone, itens, total, preferencia, jaEnviado = false }) {
   const assunto = jaEnviado
@@ -61,7 +66,7 @@ export function montarMensagemDeEncaixe({ nome, telefone, itens, total, preferen
   contato.push(`*Meu WhatsApp:* ${telefone}`);
 
   return montar(
-    SAUDACAO,
+    saudacao(),
     assunto,
     blocoDosProcedimentos(itens, total),
     contato.join('\n'),

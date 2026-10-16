@@ -1,6 +1,6 @@
-// Cliente da API do Anna Studio (rotas públicas do site, sem login).
+// Cliente da API do estúdio (rotas públicas do site, sem login).
 // Em desenvolvimento, o Vite repassa /api para a API (vite.config.js); em produção, defina VITE_API_URL
-// (ex.: https://api.annastudio.com.br) antes do build.
+// (ex.: https://api.seudominio.com.br) antes do build.
 const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 /** Erro da API com a mensagem já em português (vem do `title` do ProblemDetails). */
@@ -41,8 +41,14 @@ async function chamar(caminho, opcoes) {
  */
 export const buscarProcedimentos = () => chamar('/api/site/procedimentos');
 
-/** GET /api/site/estudio: dados do estúdio (whatsapp, instagrams, facebook, tiktok, endereco, cnpj, taxaDePreAgendamento). */
+/**
+ * GET /api/site/estudio: dados do estúdio (nomeDoEstudio, especialidade, nomeDaProfissional, whatsapp, instagrams,
+ * facebook, tiktok, endereço, cnpj, taxaDePreAgendamento); o que não foi preenchido vem vazio.
+ */
 export const buscarEstudio = () => chamar('/api/site/estudio');
+
+/** GET /api/site/cuidados: cuidados pós-atendimento cadastrados no painel, na ordem ({ titulo, detalhe }); vazio = nenhum. */
+export const buscarCuidados = () => chamar('/api/site/cuidados');
 
 /** GET /api/site/horarios: dias do mês com horários livres ({ ano, mes, dias: [{ data, horas }] }). */
 export const buscarHorarios = (ano, mes) => chamar(`/api/site/horarios?ano=${ano}&mes=${mes}`);
