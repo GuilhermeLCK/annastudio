@@ -42,7 +42,7 @@ async function chamar(caminho, opcoes) {
 export const buscarProcedimentos = () => chamar('/api/site/procedimentos');
 
 /**
- * GET /api/site/estudio: dados do estúdio (nomeDoEstudio, especialidade, nomeDaProfissional, whatsapp, instagrams,
+ * GET /api/site/estudio: dados do estúdio (nomeDoEstudio, especialidade, nomeDaProfissional, whatsapp, instagrams — lista com 0 ou 1 perfil —,
  * facebook, tiktok, endereço, cnpj, taxaDePreAgendamento); o que não foi preenchido vem vazio.
  */
 export const buscarEstudio = () => chamar('/api/site/estudio');

@@ -466,11 +466,12 @@ const IconeDoTiktok = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5" /><path d="M14 3c.3 2.6 2 4.3 4.5 4.5" /></svg>
 );
 
-// Redes sociais preenchidas em "Dados do estúdio" no painel, na ordem: Instagram (até 3), Facebook e TikTok
+// Redes sociais preenchidas em "Dados do estúdio" no painel, na ordem: Instagram (um só), Facebook e TikTok
 function redesDoEstudio(estudio) {
   if (!estudio) return [];
+  const [instagram] = estudio.instagrams ?? []; // a API manda uma lista com 0 ou 1 perfil
   return [
-    ...estudio.instagrams.map((perfil) => ({ chave: `ig-${perfil.usuario}`, icone: <IconeDoInstagram />, rotulo: `@${perfil.usuario}`, url: perfil.url })),
+    instagram && { chave: 'instagram', icone: <IconeDoInstagram />, rotulo: `@${instagram.usuario}`, url: instagram.url },
     estudio.facebook && { chave: 'facebook', icone: <IconeDoFacebook />, rotulo: estudio.facebook.usuario, url: estudio.facebook.url },
     estudio.tiktok && { chave: 'tiktok', icone: <IconeDoTiktok />, rotulo: `@${estudio.tiktok.usuario}`, url: estudio.tiktok.url },
   ].filter(Boolean);
