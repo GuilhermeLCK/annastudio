@@ -15,10 +15,12 @@ export function procedimentosDaApi() {
   return promessa;
 }
 
-const fmtPreco = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const fmtPrecoInteiro = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const fmtPrecoComCentavos = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
 
-// "R$ 130", ou "R$ 129,90" quando tem centavos
-export const formatarPreco = (valor) => fmtPreco.format(valor).replace(/\s/g, ' ');
+// "R$ 130", ou "R$ 129,90" quando tem centavos (sempre os dois dígitos: nunca "R$ 90,5")
+export const formatarPreco = (valor) =>
+  (Number.isInteger(valor) ? fmtPrecoInteiro : fmtPrecoComCentavos).format(valor).replace(/\s/g, ' ');
 
 const TITULO_DO_DESTAQUE = 'FAVORITOS';
 
