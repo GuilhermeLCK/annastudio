@@ -36,8 +36,8 @@ async function chamar(caminho, opcoes) {
 }
 
 /**
- * GET /api/site/procedimentos: procedimentos ativos (id, nome, descricao, valor, duracaoEmMinutos e, nos que geram
- * manutenção, manutencaoEmDias).
+ * GET /api/site/procedimentos: procedimentos ativos (id, nome, descricao, valor, duracaoEmMinutos, ehManutencao e, nos
+ * que têm manutenção escolhida, manutencaoEmDias).
  */
 export const buscarProcedimentos = () => chamar('/api/site/procedimentos');
 

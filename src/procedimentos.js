@@ -33,8 +33,8 @@ export function formatarDuracao(minutos) {
   return resto === 0 ? `${horas}h` : `${horas}h${String(resto).padStart(2, '0')}`;
 }
 
-// Manutenção do procedimento (só os que geram manutenção no painel): "Manutenção a partir de 15 dias". Vazio quando a
-// API não manda o prazo (procedimento sem manutenção ou API anterior).
+// Manutenção do procedimento (só os que têm manutenção escolhida no painel): "Manutenção a partir de 15 dias" (o prazo é
+// o mesmo para todos). Vazio quando a API não manda o prazo (procedimento sem manutenção ou API anterior).
 export function textoDaManutencao(procedimento) {
   const dias = procedimento?.manutencaoEmDias;
   if (!Number.isInteger(dias) || dias <= 0) return '';
@@ -50,15 +50,18 @@ export function faixaDeDuracao(procedimentos) {
   return menor === maior ? formatarDuracao(menor) : `de ${formatarDuracao(menor)} a ${formatarDuracao(maior)}`;
 }
 
-// Organiza os procedimentos da API para a lista de preços e para a escolha no agendamento: só os favoritos ficam
-// separado (quando a API o informa); todo o resto vem numa lista única, na ordem da API.
+// Organiza os procedimentos da API para a lista de preços e para a escolha no agendamento: os favoritos primeiro
+// (quando a API o informa), depois os demais e, por último, as manutenções (os marcados como manutenção no painel),
+// sempre na ordem da API.
 export function agruparProcedimentos(procedimentos) {
   const destaques = procedimentos.filter((p) => p.destaque === true);
-  const demais = procedimentos.filter((p) => p.destaque !== true);
+  const manutencoes = procedimentos.filter((p) => p.destaque !== true && p.ehManutencao === true);
+  const demais = procedimentos.filter((p) => p.destaque !== true && p.ehManutencao !== true);
   const resultado = [];
 
   if (destaques.length) resultado.push({ t: TITULO_DO_DESTAQUE, itens: destaques });
   if (demais.length) resultado.push({ t: destaques.length ? 'OUTROS PROCEDIMENTOS' : 'PROCEDIMENTOS', itens: demais });
+  if (manutencoes.length) resultado.push({ t: 'MANUTENÇÃO', itens: manutencoes });
 
   return resultado;
 }
