@@ -92,9 +92,8 @@ export function linhasDoEndereco(estudio) {
   ].filter(Boolean);
 }
 
-// Cidade e bairro do endereço cadastrado, para as frases do site; vazios sem endereço (o trecho some).
+// Cidade do endereço cadastrado, para a sobrelinha do site; vazia sem endereço (o trecho some).
 export const cidadeDoEstudio = (estudio) => campo(estudio, 'cidade');
-export const bairroDoEstudio = (estudio) => campo(estudio, 'bairro');
 
 // Texto que o mapa procura (a API monta sem complemento, terminando em "Brasil"); vazio sem endereço.
 export const enderecoDoMapa = (estudio) => estudio?.enderecoParaMapa || estudio?.endereco || '';

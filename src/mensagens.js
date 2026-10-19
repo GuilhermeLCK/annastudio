@@ -11,6 +11,9 @@ const saudacao = () => `${ola()} Tudo bem?`;
 /** Mensagem curta para chamar o estúdio quando o site não carregou os horários. */
 export const mensagemParaAgendar = () => `${ola()} Gostaria de agendar um horário.`;
 
+/** Só para conversar pelo WhatsApp (o botão "Falar no WhatsApp" da janela de agendamento). */
+export const mensagemParaConversar = () => saudacao();
+
 // api.whatsapp.com e não wa.me: pelo wa.me o WhatsApp do Windows estraga acentos e símbolos.
 // O número é o de "Dados do estúdio" no painel (estudio.js).
 export function linkDoWhatsApp(mensagem) {

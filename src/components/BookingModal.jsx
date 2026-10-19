@@ -3,7 +3,7 @@ import { agendar, buscarHorarios, pedirEncaixe } from '../api.js';
 import { agruparProcedimentos, formatarDuracao, procedimentosDaApi, textoDaManutencao } from '../procedimentos.js';
 import { PAGAMENTOS } from '../data.js';
 import { AProfissional, aProfissional, nomeDaProfissional, temWhatsApp, textoDaTaxa } from '../estudio.js';
-import { linkDoWhatsApp, mensagemParaAgendar, montarMensagem, montarMensagemDeEncaixe } from '../mensagens.js';
+import { linkDoWhatsApp, mensagemParaAgendar, mensagemParaConversar, montarMensagem, montarMensagemDeEncaixe } from '../mensagens.js';
 import { useEstudio } from '../useEstudio.js';
 import { useLenis } from '../lenis.jsx';
 
@@ -728,13 +728,19 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
             </div>
 
             {!semAgenda && (
-              <footer className="modal__foot">
+              <footer className={comWhatsApp ? 'modal__foot modal__foot--stack' : 'modal__foot'}>
                 <button type="submit" className="btn btn--dark btn--block" disabled={enviando || !procedimentos}>
                   {enviando ? (encaixe ? 'Enviando…' : 'Reservando…') : encaixe ? 'Pedir encaixe' : 'Reservar meu horário'}
                   {!enviando && (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                   )}
                 </button>
+                {/* Para só conversar, sem reservar nem pedir encaixe (só com o WhatsApp cadastrado) */}
+                {comWhatsApp && (
+                  <a className="btn btn--ghost btn--block" href={linkDoWhatsApp(mensagemParaConversar())} target="_blank" rel="noopener noreferrer">
+                    Falar no WhatsApp
+                  </a>
+                )}
               </footer>
             )}
           </>

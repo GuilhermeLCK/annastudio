@@ -6,7 +6,7 @@ import { useProcedimentos } from './useProcedimentos.js';
 import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
 import {
-  bairroDoEstudio,
+
   cidadeDoEstudio,
   enderecoDoMapa,
   especialidadeDoEstudio,
@@ -111,13 +111,13 @@ const Header = ({ onBook }) => {
   );
 };
 
-// Cidade e bairro saem do endereço cadastrado; profissional e especialidade, de "Dados do estúdio". Vazios, o trecho some.
+// Cidade sai do endereço cadastrado; profissional e especialidade, de "Dados do estúdio". Vazios, o trecho some.
 const Hero = ({ onBook }) => {
   const lenis = useLenis();
   const imgRef = useRef(null);
   const estudio = useEstudio();
   const cidade = cidadeDoEstudio(estudio);
-  const bairro = bairroDoEstudio(estudio);
+
   const profissional = nomeDaProfissional(estudio);
   const especialidade = especialidadeDoEstudio(estudio);
 
@@ -143,7 +143,7 @@ const Hero = ({ onBook }) => {
             ))}
           </h1>
           <p className="hero__lead hero__in" style={{ animationDelay: '.2s' }}>
-            Extensão de cílios sob medida{bairro && ` no bairro ${bairro}`}. Volume brasileiro, volume egípcio e outras técnicas, com atendimento individual e hora marcada.
+            Cada detalhe pensado para valorizar o seu olhar, com atendimento individual e hora marcada.
           </p>
           <div className="hero__in" style={{ animationDelay: '.3s' }}>
             <button type="button" className="btn btn--dark btn--lg" onClick={() => onBook()}>
