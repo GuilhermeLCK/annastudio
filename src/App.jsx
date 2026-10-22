@@ -548,6 +548,9 @@ const Footer = ({ onBook }) => {
           {marca.length > 0 && <>© {new Date().getFullYear()} {marca.join('\u00a0· ')}</>}
           {estudio?.cnpj && <>{marca.length > 0 && '\u00a0· '}CNPJ {estudio.cnpj}</>}
         </span>
+        <a className="footer__credito" href="https://glc-dev.vercel.app" target="_blank" rel="noopener noreferrer">
+          Desenvolvido por <strong>GLC Dev</strong>
+        </a>
         <button type="button" className="to-top" onClick={topo}>
           Voltar ao topo
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" /></svg>

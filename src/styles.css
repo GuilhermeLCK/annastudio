@@ -241,6 +241,9 @@ a:has(> .logo) { text-decoration: none; }
 .social:hover { color: var(--bronze); }
 .social:hover .social__icon { background: var(--ink); border-color: var(--ink); color: var(--gold-l); transform: rotate(-8deg) scale(1.06); }
 
+.footer__credito { color: #8A7A6C; text-decoration: none; letter-spacing: .04em; transition: color .2s; }
+.footer__credito strong { font-weight: 500; color: var(--bronze); letter-spacing: .14em; text-transform: uppercase; font-size: 12px; border-bottom: 1px solid var(--gold); padding-bottom: 2px; transition: color .2s, padding .3s var(--ease); }
+.footer__credito:hover strong { color: var(--ink); padding-right: 4px; }
 .footer__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 24px 96px; border-top: 1px solid var(--line-2); font-size: 13px; color: #8A7A6C; }
 .to-top { display: inline-flex; align-items: center; gap: 8px; background: none; border: 0; cursor: pointer; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink); }
 .to-top svg { transition: transform .35s var(--ease); }
