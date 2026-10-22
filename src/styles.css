@@ -464,10 +464,14 @@ a:has(> .logo) { text-decoration: none; }
 .local__endereco { display: flex; flex-direction: column; gap: 6px; font-style: normal; font-size: 16px; line-height: 1.55; color: var(--ink-2); }
 .local__rua { font-family: var(--serif); font-weight: 500; font-size: clamp(24px, 2.6vw, 30px); line-height: 1.2; color: var(--ink); }
 .local__mapa { padding: 8px; border: 1px solid var(--gold); background: var(--cream); }
-.local__mapa iframe { display: block; width: 100%; aspect-ratio: 4 / 3; border: 0; background: var(--line); filter: saturate(.8) sepia(.06); }
+.local__quadro { position: relative; aspect-ratio: 4 / 3; background: var(--line); overflow: hidden; }
+.local__quadro iframe { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; filter: saturate(.8) sepia(.06); }
+.local__carregando { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 13px; letter-spacing: .08em; color: var(--bronze); animation: local-pulsar 1.6s ease-in-out infinite; }
+@keyframes local-pulsar { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .local__carregando { animation: none; } }
 @media (max-width: 860px) {
   .local { grid-template-columns: 1fr; }
-  .local__mapa iframe { aspect-ratio: 16 / 11; }
+  .local__quadro { aspect-ratio: 16 / 11; }
 }
 
 @media (max-width: 560px) {

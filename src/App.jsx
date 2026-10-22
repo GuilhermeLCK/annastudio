@@ -398,6 +398,54 @@ const Faq = () => {
   );
 };
 
+// Mapa do Google: o embed é pesado, então só começa a carregar um pouco antes de chegar na tela (sem o `loading="lazy"`,
+// que ainda esperava mais) e um quadro leve segura o lugar até o mapa ficar pronto.
+const MapaIncorporado = ({ busca, titulo }) => {
+  const caixa = useRef(null);
+  const [perto, setPerto] = useState(false);
+  const [pronto, setPronto] = useState(false);
+
+  useEffect(() => {
+    const elemento = caixa.current;
+    if (!elemento || perto) return undefined;
+    if (!('IntersectionObserver' in window)) {
+      setPerto(true);
+      return undefined;
+    }
+    const observador = new IntersectionObserver(
+      ([entrada]) => {
+        if (entrada.isIntersecting) {
+          setPerto(true);
+          observador.disconnect();
+        }
+      },
+      { rootMargin: '900px 0px' },
+    );
+    observador.observe(elemento);
+    return () => observador.disconnect();
+  }, [perto]);
+
+  return (
+    <div className="local__quadro" ref={caixa}>
+      {!pronto && (
+        <div className="local__carregando" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
+          <span>Carregando o mapa…</span>
+        </div>
+      )}
+      {perto && (
+        <iframe
+          title={titulo}
+          src={mapaIncorporado(busca)}
+          referrerPolicy="no-referrer-when-downgrade"
+          allowFullScreen
+          onLoad={() => setPronto(true)}
+        />
+      )}
+    </div>
+  );
+};
+
 // Onde fica o estúdio: endereço, rota e o mapa (só aparece com o endereço preenchido no painel)
 const Localizacao = () => {
   const estudio = useEstudio();
@@ -429,13 +477,7 @@ const Localizacao = () => {
           </div>
         </Reveal>
         <Reveal className="local__mapa" delay={120}>
-          <iframe
-            title={nome ? `Mapa com a localização do ${nome}` : 'Mapa com a localização do estúdio'}
-            src={mapaIncorporado(busca)}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
-          />
+          <MapaIncorporado busca={busca} titulo={nome ? `Mapa com a localização do ${nome}` : 'Mapa com a localização do estúdio'} />
         </Reveal>
       </div>
     </section>
