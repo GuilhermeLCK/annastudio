@@ -65,7 +65,10 @@ creme, tinta, bronze, dourado; Cormorant Garamond e Jost) e `lenis` para a rolag
 - **Linha de preço** (lista da página, `.price-row`, e escolha na janela, `.svc`): grade fixa — nome com o tempo junto (quebra se for comprido),
   pontilhado e o preço **sempre à direita**, na altura da última linha do nome; descrição e manutenção embaixo, na largura toda. Nunca `flex-wrap`
   aí: com nome comprido o preço caía para a linha de baixo, às vezes à esquerda e às vezes à direita.
-- **Onde fica:** "Como chegar" (rota no Google Maps) e os atalhos "Abrir no" Google Maps e Waze (`linkDoWaze`, `waze.com/ul?q=...&navigate=yes`).
+- **Onde fica:** um bloco de até 420 px: "Como chegar" (rota no Google Maps) na linha toda e, embaixo, Google Maps | Waze do mesmo tamanho
+  (`linkDoWaze`, `waze.com/ul?q=...&navigate=yes`).
+- **Cuidados:** colunas iguais com a última linha centralizada (1 no celular, 2 no tablet; no PC `colunasDosCuidados`: até 3 lado a lado,
+  4 em 2 × 2, 5 ou mais em 3) — nunca um buraco no fim da grade.
 
 ## Testes
 

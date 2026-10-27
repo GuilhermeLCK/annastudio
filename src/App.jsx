@@ -336,6 +336,9 @@ const Garantia = () => {
 };
 
 // Cuidados depois da aplicação: os que o estúdio cadastrou no painel, na ordem de lá; sem nenhum, a seção some.
+// Colunas dos cuidados no PC pela quantidade: até 3 lado a lado; 4 em 2 × 2; 5 ou mais em 3 (a última linha fica centralizada)
+const colunasDosCuidados = (quantidade) => (quantidade === 4 ? 2 : Math.min(quantidade, 3));
+
 const Cuidados = () => {
   const cuidados = useCuidados();
   if (!cuidados?.length) return null;
@@ -347,7 +350,7 @@ const Cuidados = () => {
           <div className="eyebrow">CUIDADOS</div>
           <h2 className="h2">Depois da aplicação</h2>
         </Reveal>
-        <ol className="cuidados">
+        <ol className="cuidados" style={{ '--colunas-no-pc': colunasDosCuidados(cuidados.length) }}>
           {cuidados.map((c, i) => (
             <Reveal as="li" key={`${i}-${c.titulo}`} className="cuidado" delay={(i % 4) * 90}>
               <span className="step__n">{String(i + 1).padStart(2, '0')}</span>
@@ -501,9 +504,8 @@ const Localizacao = () => {
             <a className="btn btn--dark btn--lg" href={linkDaRota(busca)} target="_blank" rel="noopener noreferrer">
               Como chegar
             </a>
-            {/* Atalhos para abrir o endereço no aplicativo de mapa que a cliente usa */}
+            {/* Atalhos para abrir o endereço no aplicativo de mapa que a cliente usa, lado a lado e do mesmo tamanho */}
             <div className="local__apps">
-              <span className="local__apps-rotulo">Abrir no</span>
               <a className="local__app" href={linkDoMapa(busca)} target="_blank" rel="noopener noreferrer">
                 <IconeDoGoogleMaps />
                 Google Maps
