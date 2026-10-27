@@ -103,6 +103,9 @@ export const mapaIncorporado = (busca) => `https://www.google.com/maps?q=${encod
 export const linkDoMapa = (busca) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(busca)}`;
 export const linkDaRota = (busca) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(busca)}`;
 
+// Rota no Waze (abre o aplicativo no celular ou o site no computador), procurando o mesmo endereço do mapa.
+export const linkDoWaze = (busca) => `https://waze.com/ul?q=${encodeURIComponent(busca)}&navigate=yes`;
+
 // "R$ 20" (ou "R$ 19,90"); vazio quando não há taxa.
 export const textoDaTaxa = (estudio = estudioAtual()) =>
   estudio.taxaDePreAgendamento ? formatarPreco(estudio.taxaDePreAgendamento) : '';

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { agendar, buscarHorarios, pedirEncaixe } from '../api.js';
-import { agruparProcedimentos, formatarDuracao, procedimentosDaApi, textoDaManutencao } from '../procedimentos.js';
+import {
+  agruparProcedimentos,
+  descricaoDoProcedimento,
+  formatarDuracao,
+  procedimentosDaApi,
+  textoDaManutencao,
+} from '../procedimentos.js';
 import { PAGAMENTOS } from '../data.js';
 import { AProfissional, aProfissional, nomeDaProfissional, temWhatsApp, textoDaTaxa } from '../estudio.js';
 import { linkDoWhatsApp, mensagemParaAgendar, mensagemParaConversar, montarMensagem, montarMensagemDeEncaixe } from '../mensagens.js';
@@ -554,11 +560,13 @@ const BookingModal = ({ open, onClose, servicoInicial, modoInicial = 'horario' }
                               <label key={p.id} className={`svc ${marcado ? 'is-active' : ''}`}>
                                 <input type="checkbox" name="servico" value={p.id} checked={marcado} disabled={travado} onChange={() => alternarProcedimento(p.id)} />
                                 <span className="svc__radio svc__radio--box" aria-hidden="true" />
-                                <span className="svc__name">{p.nome}</span>
-                                {p.duracaoEmMinutos > 0 && <span className="svc__tempo">{formatarDuracao(p.duracaoEmMinutos)}</span>}
+                                <span className="svc__name">
+                                  {p.nome}
+                                  {p.duracaoEmMinutos > 0 && <span className="svc__tempo">{formatarDuracao(p.duracaoEmMinutos)}</span>}
+                                </span>
                                 <span className="svc__dots" aria-hidden="true" />
                                 <span className="svc__price">{fmtMoeda.format(p.valor)}</span>
-                                {(p.descricao ?? '').trim() && <span className="svc__desc">{p.descricao.trim()}</span>}
+                                {descricaoDoProcedimento(p) && <span className="svc__desc">{descricaoDoProcedimento(p)}</span>}
                                 {textoDaManutencao(p) && <span className="svc__manutencao">{textoDaManutencao(p)}</span>}
                               </label>
                             );

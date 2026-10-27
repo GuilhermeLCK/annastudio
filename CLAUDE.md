@@ -28,9 +28,9 @@ creme, tinta, bronze, dourado; Cormorant Garamond e Jost) e `lenis` para a rolag
 | `components/AgendaDisponivel.jsx` | Rodapé > Horários: o próximo horário livre, Escolher horário e Pedir encaixe |
 | `components/LashMark.jsx`, `Reveal.jsx` | Desenho da marca e a animação de surgir ao rolar |
 | `api.js` | Cliente da API (`fetch`, `ErroDaApi` com a mensagem da API): uma função por rota, com a rota na doc |
-| `estudio.js` | **Ponto único dos dados do estúdio**: busca `/api/site/estudio` uma vez (`estudioDaApi`), `VAZIO` quando a API falha, e os auxiliares (`nomeDoEstudio`, `especialidadeDoEstudio`, `nomeDaProfissional`, `aProfissional`/`AProfissional` — "a Anna" ou "a profissional" —, `numeroDoWhatsApp`, `temWhatsApp`, `linhasDoEndereco`, `cidadeDoEstudio`, mapa e rota do Google Maps, `textoDaTaxa`, `tituloDoSite`) |
+| `estudio.js` | **Ponto único dos dados do estúdio**: busca `/api/site/estudio` uma vez (`estudioDaApi`), `VAZIO` quando a API falha, e os auxiliares (`nomeDoEstudio`, `especialidadeDoEstudio`, `nomeDaProfissional`, `aProfissional`/`AProfissional` — "a Anna" ou "a profissional" —, `numeroDoWhatsApp`, `temWhatsApp`, `linhasDoEndereco`, `cidadeDoEstudio`, mapa e rota do Google Maps, `linkDoWaze`, `textoDaTaxa`, `tituloDoSite`) |
 | `useEstudio.js`, `useCuidados.js`, `useProcedimentos.js` | Ganchos: `null` enquanto carrega (o trecho não aparece até chegar); procedimentos com `estado` (carregando, pronto, erro) e `tentarDeNovo` |
-| `procedimentos.js` | Busca dividida entre página e modal (1 min), `formatarPreco` ("R$ 90,50", "R$ 150") e os grupos da lista de preços (destaques que a API define, as manutenções — `ehManutencao` — no grupo **MANUTENÇÃO** por último) |
+| `procedimentos.js` | Busca dividida entre página e modal (1 min), `formatarPreco` ("R$ 90,50", "R$ 150") e `descricaoDoProcedimento` (some a descrição sem letra nem número, ex.: só um ".") e os grupos da lista de preços (destaques que a API define, as manutenções — `ehManutencao` — no grupo **MANUTENÇÃO** por último) |
 | `mensagens.js` | Mensagens do WhatsApp (agendar, conversar, reserva feita, pedido de encaixe), no formato das do painel: procedimentos um por linha com `•`, `*negrito*` nos rótulos e o total; `linkDoWhatsApp` usa `api.whatsapp.com/send` (pelo `wa.me` o WhatsApp do Windows estraga acentos e emojis) |
 | `data.js` | O texto de venda do site (etapas, o que inclui, perguntas) e as formas de pagamento (`PAGAMENTOS`, num lugar só: rótulo, como entra na frase e o valor que a API espera) |
 
@@ -62,6 +62,10 @@ creme, tinta, bronze, dourado; Cormorant Garamond e Jost) e `lenis` para a rolag
 - **Formas de pagamento** só em `PAGAMENTOS` (pendente: virem do cadastro).
 - Quem decide as regras (telefone, limites, horários) é a API; o site valida antes só para dar retorno na hora. Mensagem de erro da API aparece como veio.
 - Celular primeiro: a cliente agenda pelo celular; confira sempre em 375 px e no tablet.
+- **Linha de preço** (lista da página, `.price-row`, e escolha na janela, `.svc`): grade fixa — nome com o tempo junto (quebra se for comprido),
+  pontilhado e o preço **sempre à direita**, na altura da última linha do nome; descrição e manutenção embaixo, na largura toda. Nunca `flex-wrap`
+  aí: com nome comprido o preço caía para a linha de baixo, às vezes à esquerda e às vezes à direita.
+- **Onde fica:** "Como chegar" (rota no Google Maps) e os atalhos "Abrir no" Google Maps e Waze (`linkDoWaze`, `waze.com/ul?q=...&navigate=yes`).
 
 ## Testes
 

@@ -41,6 +41,12 @@ export function textoDaManutencao(procedimento) {
   return `Manutenção a partir de ${dias} ${dias === 1 ? 'dia' : 'dias'}`;
 }
 
+// Descrição do painel para mostrar: sem espaços nas pontas e vazia quando não tem nenhuma letra ou número (ex.: só um ".").
+export function descricaoDoProcedimento(procedimento) {
+  const texto = (procedimento?.descricao ?? '').trim();
+  return /[\p{L}\p{N}]/u.test(texto) ? texto : '';
+}
+
 // Do menor ao maior tempo cadastrado: "de 30 min a 1h30" (ou só "1h30" se todos forem iguais). Vazio sem procedimentos.
 export function faixaDeDuracao(procedimentos) {
   const minutos = procedimentos.map((p) => p.duracaoEmMinutos).filter((m) => Number.isFinite(m) && m > 0);

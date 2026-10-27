@@ -1,7 +1,14 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import AgendaDisponivel from './components/AgendaDisponivel.jsx';
 import BookingModal from './components/BookingModal.jsx';
-import { agruparProcedimentos, faixaDeDuracao, formatarDuracao, formatarPreco, textoDaManutencao } from './procedimentos.js';
+import {
+  agruparProcedimentos,
+  descricaoDoProcedimento,
+  faixaDeDuracao,
+  formatarDuracao,
+  formatarPreco,
+  textoDaManutencao,
+} from './procedimentos.js';
 import { useProcedimentos } from './useProcedimentos.js';
 import LashMark from './components/LashMark.jsx';
 import Reveal from './components/Reveal.jsx';
@@ -13,6 +20,7 @@ import {
   linhasDoEndereco,
   linkDaRota,
   linkDoMapa,
+  linkDoWaze,
   mapaIncorporado,
   nomeDaProfissional,
   nomeDoEstudio,
@@ -224,7 +232,7 @@ const useListaDePrecos = () => {
           n: p.nome,
           p: formatarPreco(p.valor),
           tempo: formatarDuracao(p.duracaoEmMinutos),
-          desc: (p.descricao ?? '').trim(),
+          desc: descricaoDoProcedimento(p),
           manutencao: textoDaManutencao(p),
         })),
       }))
@@ -280,8 +288,11 @@ const Servicos = ({ onBook }) => {
             <div className="eyebrow eyebrow--gold" style={{ paddingBottom: 10 }}>{g.t}</div>
             {g.itens.map((s) => (
               <button key={s.n} type="button" className="price-row" onClick={() => onBook(s.n)}>
-                <span className="price-row__name">{s.n}</span>
-                {s.tempo && <span className="price-row__tempo">{s.tempo}</span>}
+                {/* O tempo vai junto do nome: se o nome quebrar, o tempo segue na última linha e o preço fica sempre à direita */}
+                <span className="price-row__name">
+                  {s.n}
+                  {s.tempo && <span className="price-row__tempo">{s.tempo}</span>}
+                </span>
                 <span className="price-row__dots" />
                 <span className="price-row__price">{s.p}</span>
                 {s.desc && <span className="price-row__desc">{s.desc}</span>}
@@ -447,6 +458,25 @@ const MapaIncorporado = ({ busca, titulo }) => {
 };
 
 // Onde fica o estúdio: endereço, rota e o mapa (só aparece com o endereço preenchido no painel)
+// Ícones dos atalhos de mapa, no traço fino dos outros ícones do site
+const IconeDoGoogleMaps = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />
+    <circle cx="12" cy="10" r="2.3" />
+  </svg>
+);
+
+const IconeDoWaze = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12.5 3.5c4.4 0 8 3.1 8 7 0 3.5-2.8 6.3-6.6 6.8H10c-1.7 0-3.1-.7-4-1.9-1.1-.1-2.1-.7-2.5-1.7 1-.3 1.4-1 1.4-2.3v-.9c0-4 3.4-7 7.6-7z" />
+    <path d="M10 12.6c.7.9 1.6 1.3 2.6 1.3s1.9-.4 2.6-1.3" />
+    <circle cx="10.3" cy="9.3" r=".4" fill="currentColor" />
+    <circle cx="14.9" cy="9.3" r=".4" fill="currentColor" />
+    <circle cx="9.4" cy="19" r="1.6" />
+    <circle cx="15.6" cy="19" r="1.6" />
+  </svg>
+);
+
 const Localizacao = () => {
   const estudio = useEstudio();
   const nome = nomeDoEstudio(estudio);
@@ -467,13 +497,22 @@ const Localizacao = () => {
             <span className="local__rua">{rua}</span>
             {resto.map((linha) => <span key={linha}>{linha}</span>)}
           </address>
-          <div className="cta-par">
+          <div className="local__acoes">
             <a className="btn btn--dark btn--lg" href={linkDaRota(busca)} target="_blank" rel="noopener noreferrer">
               Como chegar
             </a>
-            <a className="footer__link" href={linkDoMapa(busca)} target="_blank" rel="noopener noreferrer">
-              Abrir no Google Maps <span aria-hidden="true">↗</span>
-            </a>
+            {/* Atalhos para abrir o endereço no aplicativo de mapa que a cliente usa */}
+            <div className="local__apps">
+              <span className="local__apps-rotulo">Abrir no</span>
+              <a className="local__app" href={linkDoMapa(busca)} target="_blank" rel="noopener noreferrer">
+                <IconeDoGoogleMaps />
+                Google Maps
+              </a>
+              <a className="local__app" href={linkDoWaze(busca)} target="_blank" rel="noopener noreferrer">
+                <IconeDoWaze />
+                Waze
+              </a>
+            </div>
           </div>
         </Reveal>
         <Reveal className="local__mapa" delay={120}>
